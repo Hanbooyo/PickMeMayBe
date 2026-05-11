@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 
+import { validateMp4RenderArtifact } from "../../../packages/render-validation/src/index.js";
 import type { ElectionBroadcastRenderProps } from "../../../packages/render-types/src/index.js";
 import { createSampleRenderOutputConfig } from "./renderConfig.js";
 import { createElectionBroadcastSampleProps } from "./sampleProps.js";
@@ -44,7 +45,11 @@ await renderMedia({
   outputLocation: outputPath,
 });
 
-console.log(`Rendered sample video: ${outputPath}`);
+const artifact = await validateMp4RenderArtifact(outputPath);
+
+console.log(
+  `Rendered sample video: ${artifact.path} (${artifact.sizeBytes} bytes)`,
+);
 
 async function createDataUriSampleProps(
   rootDirectory: string,
