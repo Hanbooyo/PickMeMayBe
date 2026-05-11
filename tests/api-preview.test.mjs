@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createManualPreview } from "../dist/apps/api/src/index.js";
+import {
+  createApiServer,
+  createManualPreview,
+} from "../dist/apps/api/src/index.js";
 
 const now = "2026-05-11T00:00:00.000Z";
 
@@ -56,3 +59,64 @@ test("createManualPreview rejects invalid manual input", () => {
     /Participant name is required/,
   );
 });
+
+test("createApiServer responds to manual preview HTTP requests", async () => {
+  const server = createApiServer();
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+    const port = address.port;
+
+    const health = await fetch(`http://127.0.0.1:${port}/health`);
+    assert.equal(health.status, 200);
+    assert.deepEqual(await health.json(), { status: "ok" });
+
+    const response = await fetch(`http://127.0.0.1:${port}/api/manual-preview`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        participants: [
+          {
+            name: "김민수",
+            email: "minsu@example.com",
+            department: "운영팀",
+            appliedAsset: "상품 A",
+          },
+        ],
+      }),
+    });
+
+    const payload = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("access-control-allow-origin"), "*");
+    assert.equal(payload.participants.length, 1);
+    assert.equal(payload.scenario.cards.length, 1);
+  } finally {
+    await close(server);
+  }
+});
+
+function listen(server) {
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+}
+
+function close(server) {
+  return new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}

@@ -245,7 +245,7 @@ roster normalization
 npm.cmd run demo:web
 ```
 
-빌드 후 `apps/web/index.html`을 브라우저에서 열면 수기 입력 테이블과 개표방송형 preview를 확인할 수 있습니다.
+빌드 후 `apps/web/index.html`을 브라우저에서 열면 수기 입력 테이블과 개표방송형 preview를 확인할 수 있습니다. 추첨 preview를 실행하려면 별도 터미널에서 API 서버도 함께 실행해야 합니다.
 
 API preview 서버:
 

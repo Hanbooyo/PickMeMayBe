@@ -96,6 +96,11 @@ export function createManualPreview(
 export function createApiServer() {
   return createServer(async (request, response) => {
     try {
+      if (request.method === "OPTIONS") {
+        sendEmpty(response, 204);
+        return;
+      }
+
       if (request.method === "GET" && request.url === "/health") {
         sendJson(response, 200, { status: "ok" });
         return;
@@ -123,8 +128,20 @@ function sendJson(
 ): void {
   response.writeHead(statusCode, {
     "content-type": "application/json; charset=utf-8",
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "GET,POST,OPTIONS",
+    "access-control-allow-headers": "content-type",
   });
   response.end(`${JSON.stringify(payload, null, 2)}\n`);
+}
+
+function sendEmpty(response: ServerResponse, statusCode: number): void {
+  response.writeHead(statusCode, {
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "GET,POST,OPTIONS",
+    "access-control-allow-headers": "content-type",
+  });
+  response.end();
 }
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {

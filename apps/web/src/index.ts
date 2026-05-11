@@ -1,7 +1,3 @@
-import { matchVisualAssets } from "../../../packages/asset-matcher/src/index.js";
-import { createElectionBroadcastScenario } from "../../../packages/presentation-engine/src/index.js";
-import { drawWinners } from "../../../packages/raffle-engine/src/index.js";
-import { createElectionBroadcastRenderProps } from "../../../packages/render-types/src/index.js";
 import {
   addManualInputRow,
   createEmptyManualInput,
@@ -9,11 +5,11 @@ import {
   removeManualInputRow,
   updateManualInputRow,
 } from "../../../packages/roster-import/src/index.js";
-import { createRendererPreviewModel } from "../../renderer/src/index.js";
 
 import type { ManualParticipantInput } from "../../../packages/shared/src/index.js";
 
 const importedAt = new Date().toISOString();
+const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -32,21 +28,6 @@ let inputs: ManualParticipantInput[] = [
     email: "jihoon@example.com",
     department: "개발팀",
     appliedAsset: "상품 C",
-  },
-];
-
-const resources = [
-  {
-    key: "김민수.png",
-    path: "resources/faces/김민수.png",
-  },
-  {
-    key: "이서연.png",
-    path: "resources/faces/이서연.png",
-  },
-  {
-    key: "박지훈.png",
-    path: "resources/faces/박지훈.png",
   },
 ];
 
@@ -69,12 +50,12 @@ getElement("remove-last-row").addEventListener("click", () => {
   render();
 });
 
-getElement("run-preview").addEventListener("click", () => {
-  runPreview();
+getElement("run-preview").addEventListener("click", async () => {
+  await runPreview();
 });
 
 render();
-runPreview();
+void runPreview();
 
 function render(): void {
   table.innerHTML = "";
@@ -107,7 +88,7 @@ function render(): void {
   });
 }
 
-function runPreview(): void {
+async function runPreview(): Promise<void> {
   try {
     const normalized = normalizeManualInputs(inputs, { importedAt });
 
@@ -120,34 +101,52 @@ function runPreview(): void {
       return;
     }
 
-    const visualAssets = matchVisualAssets(normalized.participants, resources, {
-      anonymousImagePath: "resources/faces/anonymous.png",
-    });
-    const raffleResult = drawWinners({
-      id: "web-preview-raffle",
-      participants: normalized.participants,
-      options: {
-        winnerCount: 1,
-        allowPreviousWinners: true,
+    const response = await fetch(manualPreviewEndpoint, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
       },
-      createdAt: importedAt,
+      body: JSON.stringify({
+        participants: normalized.participants.map((participant) => ({
+          name: participant.name,
+          email: participant.email,
+          department: participant.department,
+          appliedAsset: participant.appliedAsset,
+        })),
+        title: "PickMeMaybe LIVE",
+        winnerCount: 1,
+      }),
     });
-    const scenario = createElectionBroadcastScenario({
-      id: "web-preview-scenario",
-      title: "PickMeMaybe LIVE",
-      raffleResult,
-      participants: normalized.participants,
-      visualAssets,
-      durationSeconds: 10,
-    });
-    const renderProps = createElectionBroadcastRenderProps(scenario);
-    createRendererPreviewModel(renderProps);
 
-    renderPreview(scenario.cards, scenario.winnerIds);
+    const payload = (await response.json()) as ManualPreviewApiResponse;
+
+    if (!response.ok) {
+      throw new Error(payload.error ?? "API preview request failed.");
+    }
+
+    renderPreview(payload.scenario.cards, payload.scenario.winnerIds);
   } catch (error) {
-    setError(error instanceof Error ? error.message : "Unknown preview error.");
+    setError(
+      error instanceof Error
+        ? `${error.message} API 서버가 실행 중인지 확인하세요: npm.cmd run demo:api`
+        : "Unknown preview error.",
+    );
   }
 }
+
+type ManualPreviewApiResponse = {
+  error?: string;
+  scenario: {
+    winnerIds: string[];
+    cards: Array<{
+      participantId: string;
+      name: string;
+      department?: string;
+      appliedAsset?: string;
+      isWinner: boolean;
+    }>;
+  };
+};
 
 function renderPreview(
   cards: Array<{
