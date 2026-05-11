@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "studio": "remotion studio src/Root.tsx",
-    "preview": "remotion preview src/Root.tsx"
+    "preview": "remotion preview src/Root.tsx",
+    "render:sample": "node ../../dist/apps/renderer/src/renderSample.js"
   },
   "dependencies": {
     "@pick-me-maybe/render-types": "file:../../packages/render-types",
+    "@remotion/bundler": "^4.0.459",
+    "@remotion/renderer": "^4.0.459",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "remotion": "^4.0.459"

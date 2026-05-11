@@ -265,7 +265,15 @@ Remotion composition preview:
 npm.cmd --workspace @pick-me-maybe/renderer run studio
 ```
 
-`ElectionBroadcastReveal` composition은 현재 개표방송형 16:9 화면의 Remotion 뼈대입니다. 실제 MP4 렌더링은 후속 단계에서 추가합니다.
+`ElectionBroadcastReveal` composition은 현재 개표방송형 16:9 화면의 Remotion 뼈대입니다.
+
+샘플 MP4 렌더링:
+
+```powershell
+npm.cmd run render:sample
+```
+
+기본 출력 경로는 `data/renders/election-broadcast-sample.mp4`입니다. 렌더링은 시간이 걸릴 수 있으며 로컬 Chrome/Remotion 렌더링 환경에 영향을 받습니다.
 
 API preview 서버:
 
