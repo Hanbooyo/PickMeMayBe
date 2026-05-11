@@ -2,6 +2,8 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { createReadStream } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import * as XLSX from "xlsx";
 
 import { matchVisualAssets, type ImageResource } from "../../../packages/asset-matcher/src/index.js";
@@ -48,6 +50,14 @@ export type RenderArtifactSummary = {
 
 export type ApiServerOptions = {
   renderDirectory?: string;
+  renderSample?: RenderSampleRunner;
+};
+
+export type RenderSampleRunner = () => Promise<RenderSampleResult>;
+
+export type RenderSampleResult = {
+  stdout: string;
+  stderr: string;
 };
 
 export type ManualPreviewResponse = {
@@ -177,6 +187,7 @@ export async function listRenderArtifacts(
 
 export function createApiServer(options: ApiServerOptions = {}) {
   const renderDirectory = options.renderDirectory ?? "data/renders";
+  const renderSample = options.renderSample ?? runSampleRenderCommand;
 
   return createServer(async (request, response) => {
     try {
@@ -222,11 +233,37 @@ export function createApiServer(options: ApiServerOptions = {}) {
         return;
       }
 
+      if (request.method === "POST" && request.url === "/api/render-sample") {
+        const result = await renderSample();
+        sendJson(response, 200, {
+          render: result,
+          renders: await listRenderArtifacts(renderDirectory),
+        });
+        return;
+      }
+
       sendJson(response, 404, { error: "Not found" });
     } catch (error) {
       sendJson(response, 400, createErrorPayload(error));
     }
   });
+}
+
+async function runSampleRenderCommand(): Promise<RenderSampleResult> {
+  const { stdout, stderr } = await promisify(execFile)(
+    "npm.cmd",
+    ["run", "render:sample"],
+    {
+      cwd: process.cwd(),
+      timeout: 600_000,
+      windowsHide: true,
+    },
+  );
+
+  return {
+    stdout,
+    stderr,
+  };
 }
 
 async function sendRenderArtifact(

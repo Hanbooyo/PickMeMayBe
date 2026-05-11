@@ -254,6 +254,40 @@ test("createApiServer downloads validated render artifacts", async () => {
   }
 });
 
+test("createApiServer triggers a sample render runner", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-renders-"));
+  const server = createApiServer({
+    renderDirectory: directory,
+    renderSample: async () => {
+      await writeFile(join(directory, "triggered.mp4"), createMp4Fixture());
+
+      return {
+        stdout: "rendered",
+        stderr: "",
+      };
+    },
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/render-sample`, {
+      method: "POST",
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(payload.render.stdout, "rendered");
+    assert.equal(payload.renders.length, 1);
+    assert.equal(payload.renders[0].fileName, "triggered.mp4");
+  } finally {
+    await close(server);
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("createApiServer rejects unsafe render artifact paths", async () => {
   const server = createApiServer();
   await listen(server);
