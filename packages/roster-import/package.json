@@ -4,5 +4,8 @@
   "private": true,
   "type": "module",
   "main": "../../dist/packages/roster-import/src/index.js",
-  "types": "../../dist/packages/roster-import/src/index.d.ts"
+  "types": "../../dist/packages/roster-import/src/index.d.ts",
+  "dependencies": {
+    "@pick-me-maybe/shared": "file:../shared"
+  }
 }
