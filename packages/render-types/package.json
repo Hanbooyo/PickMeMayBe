@@ -4,5 +4,8 @@
   "private": true,
   "type": "module",
   "main": "../../dist/packages/render-types/src/index.js",
-  "types": "../../dist/packages/render-types/src/index.d.ts"
+  "types": "../../dist/packages/render-types/src/index.d.ts",
+  "dependencies": {
+    "@pick-me-maybe/presentation-engine": "file:../presentation-engine"
+  }
 }
