@@ -89,6 +89,42 @@ test("createManualPreview supports multiple winners", () => {
   );
 });
 
+test("createManualPreview can exclude previous winners", () => {
+  const participants = [
+    {
+      name: "Alpha",
+      email: "alpha@example.com",
+    },
+    {
+      name: "Beta",
+      email: "beta@example.com",
+    },
+  ];
+
+  const first = createManualPreview(
+    {
+      participants,
+      winnerCount: 1,
+    },
+    now,
+  );
+  const second = createManualPreview(
+    {
+      participants,
+      winnerCount: 1,
+      allowPreviousWinners: false,
+      previousWinnerIds: first.raffleResult.winnerIds,
+    },
+    now,
+  );
+
+  assert.equal(second.raffleResult.winnerIds.length, 1);
+  assert.equal(
+    first.raffleResult.winnerIds.includes(second.raffleResult.winnerIds[0]),
+    false,
+  );
+});
+
 test("createApiServer responds to manual preview HTTP requests", async () => {
   const server = createApiServer();
   await listen(server);

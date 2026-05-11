@@ -15,6 +15,8 @@ export type ManualPreviewRequest = {
   anonymousImagePath?: string;
   title?: string;
   winnerCount?: number;
+  allowPreviousWinners?: boolean;
+  previousWinnerIds?: string[];
 };
 
 export type ManualPreviewResponse = {
@@ -69,8 +71,9 @@ export function createManualPreview(
     participants: normalized.participants,
     options: {
       winnerCount: request.winnerCount ?? 1,
-      allowPreviousWinners: true,
+      allowPreviousWinners: request.allowPreviousWinners ?? true,
     },
+    previousWinnerIds: request.previousWinnerIds,
     createdAt: now,
   });
   const scenario = createElectionBroadcastScenario({

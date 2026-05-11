@@ -45,6 +45,9 @@ const apiStatus = getElement("api-status");
 const history = getElement("history");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
+const allowPreviousWinnersInput = getElement(
+  "allow-previous-winners",
+) as HTMLInputElement;
 
 getElement("add-row").addEventListener("click", () => {
   inputs = addManualInputRow(inputs);
@@ -132,6 +135,8 @@ async function runPreview(): Promise<void> {
         })),
         title: "PickMeMaybe LIVE",
         winnerCount,
+        allowPreviousWinners: allowPreviousWinnersInput.checked,
+        previousWinnerIds: resultHistory.flatMap((entry) => entry.winnerIds),
       }),
     });
 

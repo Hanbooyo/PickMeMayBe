@@ -69,6 +69,16 @@
         width: 118px;
       }
 
+      .checkbox-label {
+        grid-auto-flow: column;
+        align-items: center;
+      }
+
+      .checkbox-label input {
+        width: 18px;
+        height: 18px;
+      }
+
       .shell {
         min-height: 100vh;
         display: grid;
@@ -369,6 +379,10 @@
             <label>
               당첨 인원
               <input id="winner-count" class="winner-count" type="number" min="1" step="1" value="1" />
+            </label>
+            <label class="checkbox-label">
+              <input id="allow-previous-winners" type="checkbox" checked />
+              과거 당첨자 허용
             </label>
             <button id="run-preview" class="primary" type="button">추첨 실행</button>
           </div>
