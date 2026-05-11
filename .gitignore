@@ -1,0 +1,13 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+
+data/dev.db
+data/uploads/
+data/renders/
+data/thumbnails/
+
+*.log

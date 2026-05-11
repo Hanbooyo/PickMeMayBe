@@ -1,0 +1,18 @@
+{
+  "name": "pick-me-maybe",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-directed raffle presentation platform.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "echo \"No tests configured yet\"",
+    "typecheck": "tsc -p tsconfig.json --pretty"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
