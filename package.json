@@ -11,6 +11,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "demo:preview": "tsc -p tsconfig.json && node scripts/create-preview-report.mjs",
+    "demo:web": "tsc -p tsconfig.json && npm.cmd --workspace @pick-me-maybe/web run demo",
     "test": "tsc -p tsconfig.json && node --test tests/*.test.mjs",
     "typecheck": "tsc -p tsconfig.json --pretty"
   },

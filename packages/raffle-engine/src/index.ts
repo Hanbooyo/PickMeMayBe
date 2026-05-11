@@ -1,5 +1,3 @@
-import { randomInt } from "node:crypto";
-
 import type {
   Participant,
   RaffleOptions,
@@ -144,5 +142,26 @@ function shuffleParticipants(
 }
 
 function cryptoRandomInt(maxExclusive: number): number {
-  return randomInt(maxExclusive);
+  if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) {
+    throw new RaffleEngineError(
+      "INVALID_WINNER_COUNT",
+      "Random integer upper bound must be a positive integer.",
+    );
+  }
+
+  const cryptoApi = globalThis.crypto;
+
+  if (!cryptoApi?.getRandomValues) {
+    throw new Error("A crypto random source is not available.");
+  }
+
+  const maxUint32 = 0x100000000;
+  const limit = maxUint32 - (maxUint32 % maxExclusive);
+  const values = new Uint32Array(1);
+
+  do {
+    cryptoApi.getRandomValues(values);
+  } while (values[0] >= limit);
+
+  return values[0] % maxExclusive;
 }
