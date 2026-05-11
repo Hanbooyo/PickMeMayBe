@@ -44,6 +44,7 @@ const errorMessage = getElement("error-message");
 const apiStatus = getElement("api-status");
 const history = getElement("history");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
+const winnerCountInput = getElement("winner-count") as HTMLInputElement;
 
 getElement("add-row").addEventListener("click", () => {
   inputs = addManualInputRow(inputs);
@@ -105,6 +106,7 @@ async function runPreview(): Promise<void> {
   try {
     setError("");
     const normalized = normalizeManualInputs(inputs, { importedAt });
+    const winnerCount = readWinnerCount();
 
     if (normalized.errors.length > 0) {
       setError(
@@ -129,7 +131,7 @@ async function runPreview(): Promise<void> {
           appliedAsset: participant.appliedAsset,
         })),
         title: "PickMeMaybe LIVE",
-        winnerCount: 1,
+        winnerCount,
       }),
     });
 
@@ -156,6 +158,16 @@ async function runPreview(): Promise<void> {
   } finally {
     setBusy(false);
   }
+}
+
+function readWinnerCount(): number {
+  const winnerCount = Number(winnerCountInput.value);
+
+  if (!Number.isInteger(winnerCount) || winnerCount <= 0) {
+    throw new Error("당첨 인원은 1명 이상이어야 합니다.");
+  }
+
+  return winnerCount;
 }
 
 async function checkApiStatus(): Promise<void> {

@@ -60,6 +60,35 @@ test("createManualPreview rejects invalid manual input", () => {
   );
 });
 
+test("createManualPreview supports multiple winners", () => {
+  const response = createManualPreview(
+    {
+      participants: [
+        {
+          name: "김민수",
+          email: "minsu@example.com",
+        },
+        {
+          name: "이서연",
+          email: "seoyeon@example.com",
+        },
+        {
+          name: "박지훈",
+          email: "jihoon@example.com",
+        },
+      ],
+      winnerCount: 2,
+    },
+    now,
+  );
+
+  assert.equal(response.raffleResult.winnerIds.length, 2);
+  assert.equal(
+    response.scenario.cards.filter((card) => card.isWinner).length,
+    2,
+  );
+});
+
 test("createApiServer responds to manual preview HTTP requests", async () => {
   const server = createApiServer();
   await listen(server);

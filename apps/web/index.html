@@ -57,6 +57,18 @@
         padding: 9px 10px;
       }
 
+      label {
+        display: inline-grid;
+        gap: 5px;
+        color: #cbd5e1;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .winner-count {
+        width: 118px;
+      }
+
       .shell {
         min-height: 100vh;
         display: grid;
@@ -354,6 +366,10 @@
           <div class="toolbar">
             <button id="add-row" type="button">+ 참가자 추가</button>
             <button id="remove-last-row" type="button">- 마지막 행 제거</button>
+            <label>
+              당첨 인원
+              <input id="winner-count" class="winner-count" type="number" min="1" step="1" value="1" />
+            </label>
             <button id="run-preview" class="primary" type="button">추첨 실행</button>
           </div>
           <div class="status" id="api-status">
