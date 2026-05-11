@@ -229,7 +229,7 @@ Preview report 생성:
 npm.cmd run demo:preview
 ```
 
-이 명령은 샘플 참가자 데이터를 사용해 다음 파이프라인을 실행하고 `reports/preview-report.json` 파일을 생성합니다.
+이 명령은 샘플 수기 입력 데이터를 사용해 다음 파이프라인을 실행하고 `reports/preview-report.json`, `reports/preview.html` 파일을 생성합니다.
 
 ```text
 roster normalization
