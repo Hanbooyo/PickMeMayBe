@@ -398,7 +398,10 @@ function renderArtifacts(renders: RenderArtifactSummary[]): void {
     .map(
       (render) => `
         <article class="render-item">
-          <div class="render-name">${escapeHtml(render.fileName)}</div>
+          <div>
+            <div class="render-name">${escapeHtml(render.fileName)}</div>
+            <a class="render-download" href="${rendersEndpoint}/${encodeURIComponent(render.fileName)}" download>Download MP4</a>
+          </div>
           <div class="render-meta">${escapeHtml(render.format.toUpperCase())} · ${formatBytes(render.sizeBytes)}</div>
         </article>
       `,
