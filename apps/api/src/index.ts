@@ -9,6 +9,11 @@ import {
 import { createElectionBroadcastRenderProps } from "../../../packages/render-types/src/index.js";
 import { normalizeManualInputs } from "../../../packages/roster-import/src/index.js";
 import { createRendererPreviewModel } from "../../renderer/src/index.js";
+import {
+  addHistoryEntry,
+  createHistoryEntryFromScenario,
+  type RaffleHistoryEntry,
+} from "../../../packages/history/src/index.js";
 
 import type { ManualParticipantInput } from "../../../packages/shared/src/index.js";
 
@@ -28,6 +33,7 @@ export type ManualPreviewResponse = {
   raffleResult: ReturnType<typeof drawWinners>;
   scenario: ReturnType<typeof createElectionBroadcastScenario>;
   preview: ReturnType<typeof createRendererPreviewModel>;
+  history: RaffleHistoryEntry[];
 };
 
 const defaultResources: ImageResource[] = [
@@ -44,6 +50,7 @@ const defaultResources: ImageResource[] = [
     path: "resources/faces/박지훈.svg",
   },
 ];
+let previewHistory: RaffleHistoryEntry[] = [];
 
 export function createManualPreview(
   request: ManualPreviewRequest,
@@ -89,6 +96,10 @@ export function createManualPreview(
   });
   const renderProps = createElectionBroadcastRenderProps(scenario);
   const preview = createRendererPreviewModel(renderProps);
+  previewHistory = addHistoryEntry(
+    previewHistory,
+    createHistoryEntryFromScenario(scenario, now),
+  );
 
   return {
     participants: normalized.participants,
@@ -96,7 +107,16 @@ export function createManualPreview(
     raffleResult,
     scenario,
     preview,
+    history: previewHistory,
   };
+}
+
+export function getPreviewHistory(): RaffleHistoryEntry[] {
+  return [...previewHistory];
+}
+
+export function clearPreviewHistory(): void {
+  previewHistory = [];
 }
 
 export function createApiServer() {
@@ -109,6 +129,11 @@ export function createApiServer() {
 
       if (request.method === "GET" && request.url === "/health") {
         sendJson(response, 200, { status: "ok" });
+        return;
+      }
+
+      if (request.method === "GET" && request.url === "/api/history") {
+        sendJson(response, 200, { history: getPreviewHistory() });
         return;
       }
 

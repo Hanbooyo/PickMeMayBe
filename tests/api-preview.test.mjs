@@ -2,13 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  clearPreviewHistory,
   createApiServer,
   createManualPreview,
+  getPreviewHistory,
 } from "../dist/apps/api/src/index.js";
 
 const now = "2026-05-11T00:00:00.000Z";
 
 test("createManualPreview returns a complete preview response", () => {
+  clearPreviewHistory();
   const response = createManualPreview(
     {
       participants: [
@@ -45,9 +48,12 @@ test("createManualPreview returns a complete preview response", () => {
   assert.equal(response.raffleResult.winnerIds.length, 1);
   assert.equal(response.scenario.title, "PickMeMaybe API Preview");
   assert.equal(response.preview.totalFrames, 300);
+  assert.equal(response.history.length, 1);
+  assert.equal(getPreviewHistory().length, 1);
 });
 
 test("createManualPreview rejects invalid manual input", () => {
+  clearPreviewHistory();
   assert.throws(
     () =>
       createManualPreview(
@@ -61,6 +67,7 @@ test("createManualPreview rejects invalid manual input", () => {
 });
 
 test("createManualPreview supports multiple winners", () => {
+  clearPreviewHistory();
   const response = createManualPreview(
     {
       participants: [
@@ -90,6 +97,7 @@ test("createManualPreview supports multiple winners", () => {
 });
 
 test("createManualPreview can exclude previous winners", () => {
+  clearPreviewHistory();
   const participants = [
     {
       name: "Alpha",
@@ -126,6 +134,7 @@ test("createManualPreview can exclude previous winners", () => {
 });
 
 test("createApiServer responds to manual preview HTTP requests", async () => {
+  clearPreviewHistory();
   const server = createApiServer();
   await listen(server);
 
@@ -161,12 +170,19 @@ test("createApiServer responds to manual preview HTTP requests", async () => {
     assert.equal(response.headers.get("access-control-allow-origin"), "*");
     assert.equal(payload.participants.length, 1);
     assert.equal(payload.scenario.cards.length, 1);
+    assert.equal(payload.history.length, 1);
+
+    const historyResponse = await fetch(`http://127.0.0.1:${port}/api/history`);
+    const historyPayload = await historyResponse.json();
+    assert.equal(historyResponse.status, 200);
+    assert.equal(historyPayload.history.length, 1);
   } finally {
     await close(server);
   }
 });
 
 test("createApiServer returns structured raffle errors", async () => {
+  clearPreviewHistory();
   const server = createApiServer();
   await listen(server);
 
