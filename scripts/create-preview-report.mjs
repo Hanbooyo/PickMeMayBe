@@ -4,7 +4,7 @@ import { matchVisualAssets } from "../dist/packages/asset-matcher/src/index.js";
 import { createElectionBroadcastScenario } from "../dist/packages/presentation-engine/src/index.js";
 import { drawWinners } from "../dist/packages/raffle-engine/src/index.js";
 import { createElectionBroadcastRenderProps } from "../dist/packages/render-types/src/index.js";
-import { normalizeRosterRows } from "../dist/packages/roster-import/src/index.js";
+import { normalizeManualInputs } from "../dist/packages/roster-import/src/index.js";
 import { createRendererPreviewModel } from "../dist/apps/renderer/src/index.js";
 
 const importedAt = "2026-05-11T00:00:00.000Z";
@@ -13,28 +13,25 @@ function firstIndexRandomInt() {
   return 0;
 }
 
-const normalized = normalizeRosterRows(
+const normalized = normalizeManualInputs(
   [
     {
       name: "김민수",
       email: "minsu@example.com",
       department: "운영팀",
       appliedAsset: "상품 A",
-      submittedAt: importedAt,
     },
     {
       name: "이서연",
       email: "seoyeon@example.com",
       department: "마케팅팀",
       appliedAsset: "상품 B",
-      submittedAt: importedAt,
     },
     {
       name: "박지훈",
       email: "jihoon@example.com",
       department: "개발팀",
       appliedAsset: "상품 C",
-      submittedAt: importedAt,
     },
   ],
   { importedAt },
