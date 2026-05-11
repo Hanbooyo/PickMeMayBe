@@ -2,8 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  addManualInputRow,
+  createEmptyManualInput,
   normalizeManualInputs,
   normalizeRosterRows,
+  removeManualInputRow,
+  updateManualInputRow,
 } from "../dist/packages/roster-import/src/index.js";
 
 const importedAt = "2026-05-11T00:00:00.000Z";
@@ -49,6 +53,40 @@ test("normalizeManualInputs uses importedAt as submittedAt", () => {
     department: "운영팀",
     submittedAt: importedAt,
   });
+});
+
+test("manual input helpers add update and remove rows immutably", () => {
+  const initial = [createEmptyManualInput()];
+  const added = addManualInputRow(initial);
+  const updated = updateManualInputRow(added, 0, {
+    name: "김민수",
+    email: "minsu@example.com",
+    department: "운영팀",
+    appliedAsset: "상품 A",
+  });
+  const removed = removeManualInputRow(updated, 1);
+
+  assert.deepEqual(initial, [{ name: "" }]);
+  assert.deepEqual(added, [{ name: "" }, { name: "" }]);
+  assert.deepEqual(removed, [
+    {
+      name: "김민수",
+      email: "minsu@example.com",
+      department: "운영팀",
+      appliedAsset: "상품 A",
+    },
+  ]);
+});
+
+test("manual input helpers reject invalid row indexes", () => {
+  assert.throws(
+    () => updateManualInputRow([createEmptyManualInput()], 1, { name: "김민수" }),
+    /out of range/,
+  );
+  assert.throws(
+    () => removeManualInputRow([createEmptyManualInput()], -1),
+    /out of range/,
+  );
 });
 
 test("normalizers report blank participant names", () => {

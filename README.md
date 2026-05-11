@@ -27,8 +27,8 @@ Fair raffle first, dramatic presentation second.
 
 MVP에서 우선 구현할 범위입니다.
 
-- Excel roster import
 - Manual participant input
+- Excel roster import
 - Participant normalization
 - Face/resource image matching
 - Anonymous image fallback
@@ -46,9 +46,11 @@ MVP에서 우선 구현할 범위입니다.
 참가자 입력 경로는 두 가지를 지원합니다.
 
 ```text
-1. Excel upload
-2. Manual input
+1. Manual input
+2. Excel upload
 ```
+
+MVP 구현 우선순위는 수기 입력입니다. Excel 업로드는 대량 입력 편의 기능으로 후속 단계에서 붙입니다.
 
 Excel 업로드:
 

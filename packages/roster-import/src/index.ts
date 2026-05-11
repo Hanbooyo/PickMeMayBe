@@ -20,6 +20,39 @@ export type NormalizeParticipantsOptions = {
   importedAt: string;
 };
 
+export function createEmptyManualInput(): ManualParticipantInput {
+  return {
+    name: "",
+  };
+}
+
+export function addManualInputRow(
+  inputs: ManualParticipantInput[],
+): ManualParticipantInput[] {
+  return [...inputs, createEmptyManualInput()];
+}
+
+export function updateManualInputRow(
+  inputs: ManualParticipantInput[],
+  index: number,
+  patch: Partial<ManualParticipantInput>,
+): ManualParticipantInput[] {
+  validateManualInputIndex(inputs, index);
+
+  return inputs.map((input, currentIndex) =>
+    currentIndex === index ? { ...input, ...patch } : input,
+  );
+}
+
+export function removeManualInputRow(
+  inputs: ManualParticipantInput[],
+  index: number,
+): ManualParticipantInput[] {
+  validateManualInputIndex(inputs, index);
+
+  return inputs.filter((_, currentIndex) => currentIndex !== index);
+}
+
 export function normalizeRosterRows(
   rows: RosterRow[],
   options: NormalizeParticipantsOptions,
@@ -110,6 +143,15 @@ function normalizeOptionalText(value: string | undefined): string | undefined {
 
 function normalizeEmail(value: string | undefined): string | undefined {
   return normalizeOptionalText(value)?.toLowerCase();
+}
+
+function validateManualInputIndex(
+  inputs: ManualParticipantInput[],
+  index: number,
+): void {
+  if (!Number.isInteger(index) || index < 0 || index >= inputs.length) {
+    throw new Error(`Manual input row index is out of range: ${index}`);
+  }
 }
 
 function createParticipantId(input: {
