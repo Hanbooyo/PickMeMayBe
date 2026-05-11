@@ -3,7 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/Root.tsx",
+    "preview": "remotion preview src/Root.tsx"
+  },
   "dependencies": {
-    "@pick-me-maybe/render-types": "file:../../packages/render-types"
+    "@pick-me-maybe/render-types": "file:../../packages/render-types",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "remotion": "^4.0.459"
   }
 }

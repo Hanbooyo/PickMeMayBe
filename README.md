@@ -259,6 +259,14 @@ Excel 파일 업로드:
 - `Excel 파일 적용`을 누르면 API 서버가 첫 번째 sheet를 읽어 참가자 입력 행으로 변환합니다.
 - 이 기능은 `xlsx` 패키지를 사용합니다.
 
+Remotion composition preview:
+
+```powershell
+npm.cmd --workspace @pick-me-maybe/renderer run studio
+```
+
+`ElectionBroadcastReveal` composition은 현재 개표방송형 16:9 화면의 Remotion 뼈대입니다. 실제 MP4 렌더링은 후속 단계에서 추가합니다.
+
 API preview 서버:
 
 ```powershell
