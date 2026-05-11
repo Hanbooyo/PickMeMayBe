@@ -16,6 +16,7 @@ const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
 const historyEndpoint = "http://localhost:4317/api/history";
 const parseRosterFileEndpoint = "http://localhost:4317/api/parse-roster-file";
 const rendersEndpoint = "http://localhost:4317/api/renders";
+const renderSampleEndpoint = "http://localhost:4317/api/render-sample";
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -45,6 +46,7 @@ const apiStatus = getElement("api-status");
 const history = getElement("history");
 const renderList = getElement("render-list");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
+const renderSampleButton = getElement("render-sample") as HTMLButtonElement;
 const refreshRendersButton = getElement("refresh-renders") as HTMLButtonElement;
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
 const pasteRosterInput = getElement("paste-roster") as HTMLTextAreaElement;
@@ -82,6 +84,10 @@ getElement("apply-file").addEventListener("click", async () => {
 
 refreshRendersButton.addEventListener("click", async () => {
   await loadRenderArtifacts();
+});
+
+renderSampleButton.addEventListener("click", async () => {
+  await renderSampleVideo();
 });
 
 render();
@@ -336,6 +342,35 @@ async function loadRenderArtifacts(): Promise<void> {
   }
 }
 
+async function renderSampleVideo(): Promise<void> {
+  setRenderBusy(true);
+  renderList.innerHTML = `<div class="empty-state">Rendering sample MP4. This can take a little while.</div>`;
+
+  try {
+    const response = await fetch(renderSampleEndpoint, {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string };
+      throw new Error(payload.error ?? "Sample render request failed.");
+    }
+
+    const payload = (await response.json()) as {
+      renders: RenderArtifactSummary[];
+    };
+    renderArtifacts(payload.renders);
+  } catch (error) {
+    renderList.innerHTML = `<div class="empty-state">${escapeHtml(
+      error instanceof Error
+        ? `${error.message} Check that the API server can run npm.cmd run render:sample.`
+        : "Sample render failed.",
+    )}</div>`;
+  } finally {
+    setRenderBusy(false);
+  }
+}
+
 type ManualPreviewApiResponse = {
   error?: string;
   code?: string;
@@ -539,6 +574,12 @@ function setError(message: string): void {
 function setBusy(isBusy: boolean): void {
   runPreviewButton.disabled = isBusy;
   runPreviewButton.textContent = isBusy ? "추첨 실행 중..." : "추첨 실행";
+}
+
+function setRenderBusy(isBusy: boolean): void {
+  renderSampleButton.disabled = isBusy;
+  refreshRendersButton.disabled = isBusy;
+  renderSampleButton.textContent = isBusy ? "Rendering..." : "Render sample";
 }
 
 function setApiStatus(status: "checking" | "ready" | "error", message: string): void {

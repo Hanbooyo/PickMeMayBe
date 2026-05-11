@@ -366,6 +366,13 @@
         gap: 14px;
       }
 
+      .render-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
       .renders h2 {
         margin: 0;
         font-size: 18px;
@@ -496,7 +503,10 @@
                 <h2>Render outputs</h2>
                 <p>Generated MP4 files from the local render pipeline.</p>
               </div>
-              <button id="refresh-renders" type="button">Refresh</button>
+              <div class="render-actions">
+                <button id="render-sample" class="primary" type="button">Render sample</button>
+                <button id="refresh-renders" type="button">Refresh</button>
+              </div>
             </div>
             <div class="render-list" id="render-list"></div>
           </section>
