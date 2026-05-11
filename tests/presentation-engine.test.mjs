@@ -98,6 +98,40 @@ test("createElectionBroadcastScenario throws when a visual asset is missing", ()
   );
 });
 
+test("createElectionBroadcastScenario throws when winners are not candidates", () => {
+  assert.throws(
+    () =>
+      createElectionBroadcastScenario({
+        id: "scenario-1",
+        title: "PickMeMaybe LIVE",
+        raffleResult: {
+          ...raffleResult,
+          winnerIds: ["missing-winner"],
+        },
+        participants,
+        visualAssets,
+      }),
+    /Winner is not included in candidates/,
+  );
+});
+
+test("createElectionBroadcastScenario throws on duplicate winners", () => {
+  assert.throws(
+    () =>
+      createElectionBroadcastScenario({
+        id: "scenario-1",
+        title: "PickMeMaybe LIVE",
+        raffleResult: {
+          ...raffleResult,
+          winnerIds: ["p2", "p2"],
+        },
+        participants,
+        visualAssets,
+      }),
+    /Duplicate winner/,
+  );
+});
+
 test("createDefaultBroadcastTimeline rejects too short duration", () => {
   assert.throws(
     () => createDefaultBroadcastTimeline(5),

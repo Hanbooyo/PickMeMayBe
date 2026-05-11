@@ -67,3 +67,29 @@ test("normalizers report blank participant names", () => {
   assert.equal(result.participants.length, 1);
   assert.equal(result.participants[0].name, "이서연");
 });
+
+test("normalizers report duplicate emails before raffle execution", () => {
+  const result = normalizeRosterRows(
+    [
+      {
+        name: "김민수",
+        email: "DUPLICATE@example.com",
+      },
+      {
+        name: "이서연",
+        email: " duplicate@example.com ",
+      },
+    ],
+    { importedAt },
+  );
+
+  assert.deepEqual(result.errors, [
+    {
+      index: 1,
+      field: "email",
+      message: "Duplicate participant email: duplicate@example.com",
+    },
+  ]);
+  assert.equal(result.participants.length, 1);
+  assert.equal(result.participants[0].email, "duplicate@example.com");
+});

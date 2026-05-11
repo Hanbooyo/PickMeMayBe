@@ -7,7 +7,7 @@ import type {
 
 export type ParticipantInputValidationError = {
   index: number;
-  field: "name";
+  field: "name" | "email" | "id";
   message: string;
 };
 
@@ -41,6 +41,8 @@ function normalizeParticipantInputs(
 ): NormalizeParticipantsResult {
   const participants: Participant[] = [];
   const errors: ParticipantInputValidationError[] = [];
+  const seenEmails = new Set<string>();
+  const seenParticipantIds = new Set<string>();
 
   inputs.forEach((input, index) => {
     const name = normalizeOptionalText(input.name);
@@ -61,9 +63,28 @@ function normalizeParticipantInputs(
       "submittedAt" in input
         ? normalizeOptionalText(input.submittedAt) ?? options.importedAt
         : options.importedAt;
+    const id = createParticipantId({ name, email, department, index });
+
+    if (email && seenEmails.has(email)) {
+      errors.push({
+        index,
+        field: "email",
+        message: `Duplicate participant email: ${email}`,
+      });
+      return;
+    }
+
+    if (seenParticipantIds.has(id)) {
+      errors.push({
+        index,
+        field: "id",
+        message: `Duplicate participant id: ${id}`,
+      });
+      return;
+    }
 
     participants.push({
-      id: createParticipantId({ name, email, department, index }),
+      id,
       inputSource,
       name,
       ...(email ? { email } : {}),
@@ -71,6 +92,12 @@ function normalizeParticipantInputs(
       ...(appliedAsset ? { appliedAsset } : {}),
       submittedAt,
     });
+
+    if (email) {
+      seenEmails.add(email);
+    }
+
+    seenParticipantIds.add(id);
   });
 
   return { participants, errors };

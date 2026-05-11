@@ -57,6 +57,7 @@ export function createElectionBroadcastScenario(
 
   const participantIds = input.raffleResult.candidateIds;
   const winnerIdSet = new Set(input.raffleResult.winnerIds);
+  validateWinnersBelongToCandidates(input.raffleResult);
 
   return {
     id: input.id,
@@ -94,6 +95,23 @@ export function createElectionBroadcastScenario(
     }),
     timeline: createDefaultBroadcastTimeline(durationSeconds),
   };
+}
+
+function validateWinnersBelongToCandidates(raffleResult: RaffleResult): void {
+  const candidateIdSet = new Set(raffleResult.candidateIds);
+  const seenWinnerIds = new Set<string>();
+
+  raffleResult.winnerIds.forEach((winnerId) => {
+    if (seenWinnerIds.has(winnerId)) {
+      throw new Error(`Duplicate winner in scenario: ${winnerId}`);
+    }
+
+    if (!candidateIdSet.has(winnerId)) {
+      throw new Error(`Winner is not included in candidates: ${winnerId}`);
+    }
+
+    seenWinnerIds.add(winnerId);
+  });
 }
 
 export function createDefaultBroadcastTimeline(
