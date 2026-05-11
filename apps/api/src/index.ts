@@ -2,7 +2,10 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 
 import { matchVisualAssets, type ImageResource } from "../../../packages/asset-matcher/src/index.js";
 import { createElectionBroadcastScenario } from "../../../packages/presentation-engine/src/index.js";
-import { drawWinners } from "../../../packages/raffle-engine/src/index.js";
+import {
+  drawWinners,
+  RaffleEngineError,
+} from "../../../packages/raffle-engine/src/index.js";
 import { createElectionBroadcastRenderProps } from "../../../packages/render-types/src/index.js";
 import { normalizeManualInputs } from "../../../packages/roster-import/src/index.js";
 import { createRendererPreviewModel } from "../../renderer/src/index.js";
@@ -117,11 +120,26 @@ export function createApiServer() {
 
       sendJson(response, 404, { error: "Not found" });
     } catch (error) {
-      sendJson(response, 400, {
-        error: error instanceof Error ? error.message : "Unknown API error.",
-      });
+      sendJson(response, 400, createErrorPayload(error));
     }
   });
+}
+
+function createErrorPayload(error: unknown): {
+  error: string;
+  code: string;
+} {
+  if (error instanceof RaffleEngineError) {
+    return {
+      error: error.message,
+      code: error.code,
+    };
+  }
+
+  return {
+    error: error instanceof Error ? error.message : "Unknown API error.",
+    code: "UNKNOWN_ERROR",
+  };
 }
 
 function sendJson(

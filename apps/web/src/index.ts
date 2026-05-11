@@ -143,7 +143,7 @@ async function runPreview(): Promise<void> {
     const payload = (await response.json()) as ManualPreviewApiResponse;
 
     if (!response.ok) {
-      throw new Error(payload.error ?? "API preview request failed.");
+      throw new Error(formatApiError(payload));
     }
 
     renderPreview(payload.scenario.cards, payload.scenario.winnerIds);
@@ -190,8 +190,26 @@ async function checkApiStatus(): Promise<void> {
 
 type ManualPreviewApiResponse = {
   error?: string;
+  code?: string;
   scenario: ElectionBroadcastScenario;
 };
+
+function formatApiError(payload: ManualPreviewApiResponse): string {
+  switch (payload.code) {
+    case "WINNER_COUNT_EXCEEDS_ELIGIBLE_COUNT":
+      return "당첨 인원이 추첨 가능한 참가자 수보다 많습니다.";
+    case "NO_ELIGIBLE_PARTICIPANTS":
+      return "과거 당첨자 제외 조건 때문에 추첨 가능한 참가자가 없습니다.";
+    case "INVALID_WINNER_COUNT":
+      return "당첨 인원은 1명 이상의 정수여야 합니다.";
+    case "DUPLICATE_PARTICIPANT_ID":
+      return "중복된 참가자 정보가 있습니다. 이메일 또는 이름/부서를 확인하세요.";
+    case "NO_PARTICIPANTS":
+      return "참가자를 1명 이상 입력하세요.";
+    default:
+      return payload.error ?? "API preview request failed.";
+  }
+}
 
 function renderHistory(): void {
   if (resultHistory.length === 0) {

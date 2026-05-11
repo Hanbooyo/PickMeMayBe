@@ -166,6 +166,38 @@ test("createApiServer responds to manual preview HTTP requests", async () => {
   }
 });
 
+test("createApiServer returns structured raffle errors", async () => {
+  const server = createApiServer();
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/manual-preview`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        participants: [
+          {
+            name: "김민수",
+            email: "minsu@example.com",
+          },
+        ],
+        winnerCount: 2,
+      }),
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(payload.code, "WINNER_COUNT_EXCEEDS_ELIGIBLE_COUNT");
+  } finally {
+    await close(server);
+  }
+});
+
 function listen(server) {
   return new Promise((resolve, reject) => {
     server.once("error", reject);
