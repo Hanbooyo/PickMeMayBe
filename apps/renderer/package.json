@@ -2,5 +2,8 @@
   "name": "@pick-me-maybe/renderer",
   "version": "0.1.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@pick-me-maybe/render-types": "file:../../packages/render-types"
+  }
 }
