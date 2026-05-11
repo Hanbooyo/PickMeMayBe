@@ -247,6 +247,14 @@ npm.cmd run demo:web
 
 빌드 후 `apps/web/index.html`을 브라우저에서 열면 수기 입력 테이블과 개표방송형 preview를 확인할 수 있습니다.
 
+API preview 서버:
+
+```powershell
+npm.cmd run demo:api
+```
+
+기본 포트는 `4317`이며, `GET /health`, `POST /api/manual-preview`를 제공합니다.
+
 ## Testing Plan
 
 향후 테스트는 다음 범위로 구성합니다.

@@ -2,5 +2,16 @@
   "name": "@pick-me-maybe/api",
   "version": "0.1.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+    "@pick-me-maybe/asset-matcher": "file:../../packages/asset-matcher",
+    "@pick-me-maybe/presentation-engine": "file:../../packages/presentation-engine",
+    "@pick-me-maybe/raffle-engine": "file:../../packages/raffle-engine",
+    "@pick-me-maybe/render-types": "file:../../packages/render-types",
+    "@pick-me-maybe/roster-import": "file:../../packages/roster-import",
+    "@pick-me-maybe/shared": "file:../../packages/shared"
+  },
+  "scripts": {
+    "start": "node ../../dist/apps/api/src/index.js"
+  }
 }
