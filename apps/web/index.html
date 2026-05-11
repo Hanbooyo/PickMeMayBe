@@ -139,6 +139,40 @@
         min-height: 22px;
       }
 
+      .status {
+        margin-bottom: 14px;
+        min-height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.58);
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+
+      .status strong {
+        color: #f8fafc;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #f59e0b;
+        flex: 0 0 auto;
+      }
+
+      .status.ready .status-dot {
+        background: #22c55e;
+      }
+
+      .status.error .status-dot {
+        background: #ef4444;
+      }
+
       .preview {
         aspect-ratio: 16 / 9;
         border: 1px solid rgba(148, 163, 184, 0.3);
@@ -288,6 +322,10 @@
             <button id="add-row" type="button">+ 참가자 추가</button>
             <button id="remove-last-row" type="button">- 마지막 행 제거</button>
             <button id="run-preview" class="primary" type="button">추첨 실행</button>
+          </div>
+          <div class="status" id="api-status">
+            <span class="status-dot"></span>
+            <span><strong>API 상태</strong> 확인 중</span>
           </div>
           <div class="table" id="participant-table"></div>
           <div class="error" id="error-message"></div>

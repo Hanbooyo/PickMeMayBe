@@ -34,6 +34,8 @@ let inputs: ManualParticipantInput[] = [
 const table = getElement("participant-table");
 const preview = getElement("preview");
 const errorMessage = getElement("error-message");
+const apiStatus = getElement("api-status");
+const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
 
 getElement("add-row").addEventListener("click", () => {
   inputs = addManualInputRow(inputs);
@@ -55,6 +57,7 @@ getElement("run-preview").addEventListener("click", async () => {
 });
 
 render();
+void checkApiStatus();
 void runPreview();
 
 function render(): void {
@@ -89,7 +92,10 @@ function render(): void {
 }
 
 async function runPreview(): Promise<void> {
+  setBusy(true);
+
   try {
+    setError("");
     const normalized = normalizeManualInputs(inputs, { importedAt });
 
     if (normalized.errors.length > 0) {
@@ -98,6 +104,7 @@ async function runPreview(): Promise<void> {
           .map((error) => `${error.index + 1}행: ${error.message}`)
           .join(" / "),
       );
+      setBusy(false);
       return;
     }
 
@@ -125,12 +132,29 @@ async function runPreview(): Promise<void> {
     }
 
     renderPreview(payload.scenario.cards, payload.scenario.winnerIds);
+    setApiStatus("ready", "API 연결됨");
   } catch (error) {
+    setApiStatus("error", "API 연결 실패");
     setError(
       error instanceof Error
         ? `${error.message} API 서버가 실행 중인지 확인하세요: npm.cmd run demo:api`
         : "Unknown preview error.",
     );
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function checkApiStatus(): Promise<void> {
+  try {
+    const response = await fetch("http://localhost:4317/health");
+    if (!response.ok) {
+      throw new Error("Health check failed.");
+    }
+
+    setApiStatus("ready", "API 연결됨");
+  } catch {
+    setApiStatus("error", "API 연결 실패");
   }
 }
 
@@ -258,6 +282,19 @@ function getElement(id: string): HTMLElement {
 
 function setError(message: string): void {
   errorMessage.textContent = message;
+}
+
+function setBusy(isBusy: boolean): void {
+  runPreviewButton.disabled = isBusy;
+  runPreviewButton.textContent = isBusy ? "추첨 실행 중..." : "추첨 실행";
+}
+
+function setApiStatus(status: "checking" | "ready" | "error", message: string): void {
+  apiStatus.className = `status ${status === "checking" ? "" : status}`;
+  apiStatus.innerHTML = `
+    <span class="status-dot"></span>
+    <span><strong>API 상태</strong> ${escapeHtml(message)}</span>
+  `;
 }
 
 function escapeHtml(value: string): string {

@@ -255,6 +255,16 @@ npm.cmd run demo:api
 
 기본 포트는 `4317`이며, `GET /health`, `POST /api/manual-preview`를 제공합니다.
 
+권장 실행 순서:
+
+```powershell
+# terminal 1
+npm.cmd run demo:api
+
+# terminal 2
+npm.cmd run demo:web
+```
+
 샘플 이미지 resource:
 
 ```text
