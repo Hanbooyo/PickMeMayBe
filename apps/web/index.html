@@ -27,6 +27,19 @@
         font: inherit;
       }
 
+      textarea {
+        width: 100%;
+        min-height: 108px;
+        resize: vertical;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: #020617;
+        color: #f8fafc;
+        border-radius: 8px;
+        padding: 10px;
+        font: inherit;
+        margin-bottom: 10px;
+      }
+
       button {
         border: 1px solid rgba(148, 163, 184, 0.35);
         background: #1e293b;
@@ -389,6 +402,10 @@
           <div class="status" id="api-status">
             <span class="status-dot"></span>
             <span><strong>API 상태</strong> 확인 중</span>
+          </div>
+          <textarea id="paste-roster" placeholder="Excel에서 이름, 이메일, 부서, 응모자산, 입력시간 열을 복사해 붙여넣으세요."></textarea>
+          <div class="toolbar">
+            <button id="apply-paste" type="button">붙여넣기 명단 적용</button>
           </div>
           <div class="table" id="participant-table"></div>
           <div class="error" id="error-message"></div>

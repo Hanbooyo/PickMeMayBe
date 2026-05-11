@@ -20,6 +20,18 @@ export type NormalizeParticipantsOptions = {
   importedAt: string;
 };
 
+export type ParseRosterTextOptions = {
+  delimiter?: "\t" | ",";
+};
+
+const rosterColumnAliases = {
+  name: ["name", "이름"],
+  email: ["email", "이메일"],
+  department: ["department", "dept", "부서"],
+  appliedAsset: ["appliedasset", "asset", "응모자산"],
+  submittedAt: ["submittedat", "timestamp", "입력시간"],
+} as const;
+
 export function createEmptyManualInput(): ManualParticipantInput {
   return {
     name: "",
@@ -58,6 +70,44 @@ export function normalizeRosterRows(
   options: NormalizeParticipantsOptions,
 ): NormalizeParticipantsResult {
   return normalizeParticipantInputs(rows, "excel", options);
+}
+
+export function parseRosterText(
+  text: string,
+  options: ParseRosterTextOptions = {},
+): RosterRow[] {
+  const rows = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const delimiter = options.delimiter ?? detectDelimiter(rows[0]);
+  const headers = splitDelimitedLine(rows[0], delimiter).map(normalizeHeader);
+  const indexes = createRosterColumnIndexes(headers);
+
+  return rows.slice(1).map((row) => {
+    const columns = splitDelimitedLine(row, delimiter);
+
+    return {
+      name: getColumn(columns, indexes.name) ?? "",
+      ...(getColumn(columns, indexes.email)
+        ? { email: getColumn(columns, indexes.email) }
+        : {}),
+      ...(getColumn(columns, indexes.department)
+        ? { department: getColumn(columns, indexes.department) }
+        : {}),
+      ...(getColumn(columns, indexes.appliedAsset)
+        ? { appliedAsset: getColumn(columns, indexes.appliedAsset) }
+        : {}),
+      ...(getColumn(columns, indexes.submittedAt)
+        ? { submittedAt: getColumn(columns, indexes.submittedAt) }
+        : {}),
+    };
+  });
 }
 
 export function normalizeManualInputs(
@@ -143,6 +193,53 @@ function normalizeOptionalText(value: string | undefined): string | undefined {
 
 function normalizeEmail(value: string | undefined): string | undefined {
   return normalizeOptionalText(value)?.toLowerCase();
+}
+
+function detectDelimiter(headerLine: string): "\t" | "," {
+  return headerLine.includes("\t") ? "\t" : ",";
+}
+
+function splitDelimitedLine(line: string, delimiter: "\t" | ","): string[] {
+  return line.split(delimiter).map((value) => value.trim());
+}
+
+function createRosterColumnIndexes(headers: string[]): {
+  name: number;
+  email?: number;
+  department?: number;
+  appliedAsset?: number;
+  submittedAt?: number;
+} {
+  return {
+    name: findColumnIndex(headers, rosterColumnAliases.name) ?? 0,
+    email: findColumnIndex(headers, rosterColumnAliases.email),
+    department: findColumnIndex(headers, rosterColumnAliases.department),
+    appliedAsset: findColumnIndex(headers, rosterColumnAliases.appliedAsset),
+    submittedAt: findColumnIndex(headers, rosterColumnAliases.submittedAt),
+  };
+}
+
+function findColumnIndex(
+  headers: string[],
+  aliases: readonly string[],
+): number | undefined {
+  const index = headers.findIndex((header) => aliases.includes(header));
+  return index >= 0 ? index : undefined;
+}
+
+function getColumn(
+  columns: string[],
+  index: number | undefined,
+): string | undefined {
+  if (index === undefined) {
+    return undefined;
+  }
+
+  return normalizeOptionalText(columns[index]);
+}
+
+function normalizeHeader(value: string): string {
+  return value.normalize("NFKC").trim().toLowerCase().replace(/\s+/g, "");
 }
 
 function validateManualInputIndex(

@@ -247,6 +247,12 @@ npm.cmd run demo:web
 
 기본 주소는 `http://localhost:4318/apps/web/index.html`입니다. 추첨 preview를 실행하려면 별도 터미널에서 API 서버도 함께 실행해야 합니다.
 
+Excel 표 붙여넣기:
+
+- Excel에서 `이름`, `이메일`, `부서`, `응모자산`, `입력시간` 열을 복사합니다.
+- 웹 preview의 붙여넣기 영역에 붙여넣습니다.
+- `붙여넣기 명단 적용`을 누르면 수기 입력 행으로 변환됩니다.
+
 API preview 서버:
 
 ```powershell

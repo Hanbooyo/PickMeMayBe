@@ -2,6 +2,7 @@ import {
   addManualInputRow,
   createEmptyManualInput,
   normalizeManualInputs,
+  parseRosterText,
   removeManualInputRow,
   updateManualInputRow,
 } from "../../../packages/roster-import/src/index.js";
@@ -42,6 +43,7 @@ const apiStatus = getElement("api-status");
 const history = getElement("history");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
+const pasteRosterInput = getElement("paste-roster") as HTMLTextAreaElement;
 const allowPreviousWinnersInput = getElement(
   "allow-previous-winners",
 ) as HTMLInputElement;
@@ -63,6 +65,10 @@ getElement("remove-last-row").addEventListener("click", () => {
 
 getElement("run-preview").addEventListener("click", async () => {
   await runPreview();
+});
+
+getElement("apply-paste").addEventListener("click", () => {
+  applyPastedRoster();
 });
 
 render();
@@ -157,6 +163,32 @@ async function runPreview(): Promise<void> {
     );
   } finally {
     setBusy(false);
+  }
+}
+
+function applyPastedRoster(): void {
+  try {
+    const rows = parseRosterText(pasteRosterInput.value);
+
+    if (rows.length === 0) {
+      setError("붙여넣은 명단이 없습니다.");
+      return;
+    }
+
+    inputs = rows.map((row) => ({
+      name: row.name,
+      ...(row.email ? { email: row.email } : {}),
+      ...(row.department ? { department: row.department } : {}),
+      ...(row.appliedAsset ? { appliedAsset: row.appliedAsset } : {}),
+    }));
+    render();
+    setError("");
+  } catch (error) {
+    setError(
+      error instanceof Error
+        ? error.message
+        : "붙여넣기 명단을 처리할 수 없습니다.",
+    );
   }
 }
 

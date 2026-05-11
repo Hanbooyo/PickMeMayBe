@@ -6,6 +6,7 @@ import {
   createEmptyManualInput,
   normalizeManualInputs,
   normalizeRosterRows,
+  parseRosterText,
   removeManualInputRow,
   updateManualInputRow,
 } from "../dist/packages/roster-import/src/index.js";
@@ -37,6 +38,43 @@ test("normalizeRosterRows trims fields and lowercases email", () => {
     appliedAsset: "상품 A",
     submittedAt: "2026-05-10T12:00:00.000Z",
   });
+});
+
+test("parseRosterText parses tab separated Excel paste data", () => {
+  assert.deepEqual(
+    parseRosterText(
+      [
+        "이름\t이메일\t부서\t응모자산\t입력시간",
+        "김민수\tMINSU@example.com\t운영팀\t상품 A\t2026-05-11T00:00:00.000Z",
+        "이서연\tseoyeon@example.com\t마케팅팀\t상품 B\t2026-05-11T00:01:00.000Z",
+      ].join("\n"),
+    ),
+    [
+      {
+        name: "김민수",
+        email: "MINSU@example.com",
+        department: "운영팀",
+        appliedAsset: "상품 A",
+        submittedAt: "2026-05-11T00:00:00.000Z",
+      },
+      {
+        name: "이서연",
+        email: "seoyeon@example.com",
+        department: "마케팅팀",
+        appliedAsset: "상품 B",
+        submittedAt: "2026-05-11T00:01:00.000Z",
+      },
+    ],
+  );
+});
+
+test("parseRosterText parses comma separated data", () => {
+  assert.deepEqual(parseRosterText("name,email\nAlpha,alpha@example.com"), [
+    {
+      name: "Alpha",
+      email: "alpha@example.com",
+    },
+  ]);
 });
 
 test("normalizeManualInputs uses importedAt as submittedAt", () => {
