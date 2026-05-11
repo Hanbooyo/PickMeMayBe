@@ -1,4 +1,8 @@
 import {
+  addHistoryEntry,
+  createHistoryEntryFromScenario,
+} from "../../../packages/history/src/index.js";
+import {
   addManualInputRow,
   createEmptyManualInput,
   normalizeManualInputs,
@@ -7,6 +11,8 @@ import {
 } from "../../../packages/roster-import/src/index.js";
 
 import type { ManualParticipantInput } from "../../../packages/shared/src/index.js";
+import type { RaffleHistoryEntry } from "../../../packages/history/src/index.js";
+import type { ElectionBroadcastScenario } from "../../../packages/presentation-engine/src/index.js";
 
 const importedAt = new Date().toISOString();
 const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
@@ -30,11 +36,13 @@ let inputs: ManualParticipantInput[] = [
     appliedAsset: "상품 C",
   },
 ];
+let resultHistory: RaffleHistoryEntry[] = [];
 
 const table = getElement("participant-table");
 const preview = getElement("preview");
 const errorMessage = getElement("error-message");
 const apiStatus = getElement("api-status");
+const history = getElement("history");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
 
 getElement("add-row").addEventListener("click", () => {
@@ -132,6 +140,11 @@ async function runPreview(): Promise<void> {
     }
 
     renderPreview(payload.scenario.cards, payload.scenario.winnerIds);
+    resultHistory = addHistoryEntry(
+      resultHistory,
+      createHistoryEntryFromScenario(payload.scenario, new Date().toISOString()),
+    );
+    renderHistory();
     setApiStatus("ready", "API 연결됨");
   } catch (error) {
     setApiStatus("error", "API 연결 실패");
@@ -160,18 +173,37 @@ async function checkApiStatus(): Promise<void> {
 
 type ManualPreviewApiResponse = {
   error?: string;
-  scenario: {
-    winnerIds: string[];
-    cards: Array<{
-      participantId: string;
-      name: string;
-      department?: string;
-      appliedAsset?: string;
-      imagePath: string;
-      isWinner: boolean;
-    }>;
-  };
+  scenario: ElectionBroadcastScenario;
 };
+
+function renderHistory(): void {
+  if (resultHistory.length === 0) {
+    history.innerHTML = "";
+    return;
+  }
+
+  history.innerHTML = `
+    <div class="history-title">최근 추첨 결과</div>
+    ${resultHistory
+      .map(
+        (entry) => `
+          <div class="history-item">
+            <span class="history-winner">${escapeHtml(entry.winnerNames.join(", "))}</span>
+            <span class="history-time">${escapeHtml(formatHistoryTime(entry.createdAt))}</span>
+          </div>
+        `,
+      )
+      .join("")}
+  `;
+}
+
+function formatHistoryTime(value: string): string {
+  return new Intl.DateTimeFormat("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(new Date(value));
+}
 
 function renderPreview(
   cards: Array<{

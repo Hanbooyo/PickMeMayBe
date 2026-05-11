@@ -139,6 +139,39 @@
         min-height: 22px;
       }
 
+      .history {
+        margin-top: 18px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .history-title {
+        color: #94a3b8;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .history-item {
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.58);
+        border-radius: 8px;
+        padding: 10px 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .history-winner {
+        color: #fde68a;
+        font-weight: 900;
+      }
+
+      .history-time {
+        color: #94a3b8;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
       .status {
         margin-bottom: 14px;
         min-height: 34px;
@@ -329,6 +362,7 @@
           </div>
           <div class="table" id="participant-table"></div>
           <div class="error" id="error-message"></div>
+          <div class="history" id="history"></div>
         </section>
         <section class="panel">
           <div class="preview" id="preview"></div>

@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@pick-me-maybe/asset-matcher": "file:../../packages/asset-matcher",
+    "@pick-me-maybe/history": "file:../../packages/history",
     "@pick-me-maybe/presentation-engine": "file:../../packages/presentation-engine",
     "@pick-me-maybe/raffle-engine": "file:../../packages/raffle-engine",
     "@pick-me-maybe/render-types": "file:../../packages/render-types",
