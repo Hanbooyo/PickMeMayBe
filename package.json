@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "demo:preview": "tsc -p tsconfig.json && node scripts/create-preview-report.mjs",
     "test": "tsc -p tsconfig.json && node --test tests/*.test.mjs",
     "typecheck": "tsc -p tsconfig.json --pretty"
   },

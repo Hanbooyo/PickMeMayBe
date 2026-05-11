@@ -219,7 +219,23 @@ npm.cmd run typecheck
 npm.cmd test
 ```
 
-현재 `test`는 placeholder입니다. 실제 테스트 프레임워크는 다음 티켓들에서 추가할 예정입니다.
+현재 `test`는 TypeScript 빌드 후 Node test runner로 핵심 로직 테스트를 실행합니다.
+
+Preview report 생성:
+
+```powershell
+npm.cmd run demo:preview
+```
+
+이 명령은 샘플 참가자 데이터를 사용해 다음 파이프라인을 실행하고 `reports/preview-report.json` 파일을 생성합니다.
+
+```text
+roster normalization
+-> asset matching
+-> fair raffle
+-> broadcast scenario
+-> renderer preview model
+```
 
 ## Testing Plan
 
