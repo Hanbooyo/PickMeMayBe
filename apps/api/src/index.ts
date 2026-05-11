@@ -1,4 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { readdir } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import * as XLSX from "xlsx";
 
 import { matchVisualAssets, type ImageResource } from "../../../packages/asset-matcher/src/index.js";
@@ -8,6 +10,7 @@ import {
   RaffleEngineError,
 } from "../../../packages/raffle-engine/src/index.js";
 import { createElectionBroadcastRenderProps } from "../../../packages/render-types/src/index.js";
+import { validateMp4RenderArtifact } from "../../../packages/render-validation/src/index.js";
 import {
   normalizeManualInputs,
   parseRosterTable,
@@ -33,6 +36,13 @@ export type ManualPreviewRequest = {
 
 export type RosterFileParseRequest = {
   fileBase64: string;
+};
+
+export type RenderArtifactSummary = {
+  fileName: string;
+  path: string;
+  sizeBytes: number;
+  format: "mp4";
 };
 
 export type ManualPreviewResponse = {
@@ -127,6 +137,39 @@ export function clearPreviewHistory(): void {
   previewHistory = [];
 }
 
+export async function listRenderArtifacts(
+  renderDirectory = "data/renders",
+): Promise<RenderArtifactSummary[]> {
+  const directory = resolve(renderDirectory);
+  const entries = await readdir(directory, {
+    withFileTypes: true,
+  }).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") {
+      return [];
+    }
+
+    throw error;
+  });
+  const artifacts: RenderArtifactSummary[] = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.toLowerCase().endsWith(".mp4")) {
+      continue;
+    }
+
+    const artifactPath = join(directory, entry.name);
+    const validation = await validateMp4RenderArtifact(artifactPath);
+    artifacts.push({
+      fileName: entry.name,
+      path: artifactPath,
+      sizeBytes: validation.sizeBytes,
+      format: validation.format,
+    });
+  }
+
+  return artifacts.sort((left, right) => left.fileName.localeCompare(right.fileName));
+}
+
 export function createApiServer() {
   return createServer(async (request, response) => {
     try {
@@ -142,6 +185,11 @@ export function createApiServer() {
 
       if (request.method === "GET" && request.url === "/api/history") {
         sendJson(response, 200, { history: getPreviewHistory() });
+        return;
+      }
+
+      if (request.method === "GET" && request.url === "/api/renders") {
+        sendJson(response, 200, { renders: await listRenderArtifacts() });
         return;
       }
 

@@ -1,11 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 
 import {
   clearPreviewHistory,
   createApiServer,
   createManualPreview,
   getPreviewHistory,
+  listRenderArtifacts,
   parseRosterFile,
 } from "../dist/apps/api/src/index.js";
 import * as XLSX from "xlsx";
@@ -178,6 +182,11 @@ test("createApiServer responds to manual preview HTTP requests", async () => {
     const historyPayload = await historyResponse.json();
     assert.equal(historyResponse.status, 200);
     assert.equal(historyPayload.history.length, 1);
+
+    const rendersResponse = await fetch(`http://127.0.0.1:${port}/api/renders`);
+    const rendersPayload = await rendersResponse.json();
+    assert.equal(rendersResponse.status, 200);
+    assert.equal(Array.isArray(rendersPayload.renders), true);
   } finally {
     await close(server);
   }
@@ -238,6 +247,26 @@ test("parseRosterFile parses xlsx workbook data", () => {
   ]);
 });
 
+test("listRenderArtifacts returns validated mp4 render summaries", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-renders-"));
+
+  try {
+    await writeFile(join(directory, "ignored.txt"), "not a render");
+    await writeFile(join(directory, "broadcast.mp4"), createMp4Fixture());
+
+    assert.deepEqual(await listRenderArtifacts(directory), [
+      {
+        fileName: "broadcast.mp4",
+        path: join(directory, "broadcast.mp4"),
+        sizeBytes: 2060,
+        format: "mp4",
+      },
+    ]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 function listen(server) {
   return new Promise((resolve, reject) => {
     server.once("error", reject);
@@ -256,4 +285,12 @@ function close(server) {
       resolve();
     });
   });
+}
+
+function createMp4Fixture() {
+  return Buffer.concat([
+    Buffer.from([0, 0, 0, 24]),
+    Buffer.from("ftypmp42"),
+    Buffer.alloc(2048),
+  ]);
 }
