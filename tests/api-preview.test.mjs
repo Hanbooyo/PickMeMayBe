@@ -6,7 +6,9 @@ import {
   createApiServer,
   createManualPreview,
   getPreviewHistory,
+  parseRosterFile,
 } from "../dist/apps/api/src/index.js";
+import * as XLSX from "xlsx";
 
 const now = "2026-05-11T00:00:00.000Z";
 
@@ -212,6 +214,28 @@ test("createApiServer returns structured raffle errors", async () => {
   } finally {
     await close(server);
   }
+});
+
+test("parseRosterFile parses xlsx workbook data", () => {
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ["이름", "이메일", "부서", "응모자산"],
+    ["김민수", "minsu@example.com", "운영팀", "상품 A"],
+  ]);
+  XLSX.utils.book_append_sheet(workbook, sheet, "Participants");
+  const fileBase64 = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "base64",
+  });
+
+  assert.deepEqual(parseRosterFile(fileBase64), [
+    {
+      name: "김민수",
+      email: "minsu@example.com",
+      department: "운영팀",
+      appliedAsset: "상품 A",
+    },
+  ]);
 });
 
 function listen(server) {

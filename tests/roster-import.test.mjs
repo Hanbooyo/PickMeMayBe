@@ -6,6 +6,7 @@ import {
   createEmptyManualInput,
   normalizeManualInputs,
   normalizeRosterRows,
+  parseRosterTable,
   parseRosterText,
   removeManualInputRow,
   updateManualInputRow,
@@ -75,6 +76,22 @@ test("parseRosterText parses comma separated data", () => {
       email: "alpha@example.com",
     },
   ]);
+});
+
+test("parseRosterTable parses worksheet table rows", () => {
+  assert.deepEqual(
+    parseRosterTable([
+      ["name", "email", "department"],
+      ["Alpha", "alpha@example.com", "Ops"],
+    ]),
+    [
+      {
+        name: "Alpha",
+        email: "alpha@example.com",
+        department: "Ops",
+      },
+    ],
+  );
 });
 
 test("normalizeManualInputs uses importedAt as submittedAt", () => {

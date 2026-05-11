@@ -76,35 +76,47 @@ export function parseRosterText(
   text: string,
   options: ParseRosterTextOptions = {},
 ): RosterRow[] {
-  const rows = text
+  const lines = text
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
+
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const delimiter = options.delimiter ?? detectDelimiter(lines[0]);
+  return parseRosterTable(
+    lines.map((line) => splitDelimitedLine(line, delimiter)),
+  );
+}
+
+export function parseRosterTable(table: string[][]): RosterRow[] {
+  const rows = table
+    .map((row) => row.map((value) => value.trim()))
+    .filter((row) => row.some(Boolean));
 
   if (rows.length === 0) {
     return [];
   }
 
-  const delimiter = options.delimiter ?? detectDelimiter(rows[0]);
-  const headers = splitDelimitedLine(rows[0], delimiter).map(normalizeHeader);
+  const headers = rows[0].map(normalizeHeader);
   const indexes = createRosterColumnIndexes(headers);
 
   return rows.slice(1).map((row) => {
-    const columns = splitDelimitedLine(row, delimiter);
-
     return {
-      name: getColumn(columns, indexes.name) ?? "",
-      ...(getColumn(columns, indexes.email)
-        ? { email: getColumn(columns, indexes.email) }
+      name: getColumn(row, indexes.name) ?? "",
+      ...(getColumn(row, indexes.email)
+        ? { email: getColumn(row, indexes.email) }
         : {}),
-      ...(getColumn(columns, indexes.department)
-        ? { department: getColumn(columns, indexes.department) }
+      ...(getColumn(row, indexes.department)
+        ? { department: getColumn(row, indexes.department) }
         : {}),
-      ...(getColumn(columns, indexes.appliedAsset)
-        ? { appliedAsset: getColumn(columns, indexes.appliedAsset) }
+      ...(getColumn(row, indexes.appliedAsset)
+        ? { appliedAsset: getColumn(row, indexes.appliedAsset) }
         : {}),
-      ...(getColumn(columns, indexes.submittedAt)
-        ? { submittedAt: getColumn(columns, indexes.submittedAt) }
+      ...(getColumn(row, indexes.submittedAt)
+        ? { submittedAt: getColumn(row, indexes.submittedAt) }
         : {}),
     };
   });

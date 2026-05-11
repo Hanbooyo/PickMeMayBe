@@ -14,6 +14,7 @@ import type { ElectionBroadcastScenario } from "../../../packages/presentation-e
 const importedAt = new Date().toISOString();
 const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
 const historyEndpoint = "http://localhost:4317/api/history";
+const parseRosterFileEndpoint = "http://localhost:4317/api/parse-roster-file";
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -44,6 +45,7 @@ const history = getElement("history");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
 const pasteRosterInput = getElement("paste-roster") as HTMLTextAreaElement;
+const rosterFileInput = getElement("roster-file") as HTMLInputElement;
 const allowPreviousWinnersInput = getElement(
   "allow-previous-winners",
 ) as HTMLInputElement;
@@ -69,6 +71,10 @@ getElement("run-preview").addEventListener("click", async () => {
 
 getElement("apply-paste").addEventListener("click", () => {
   applyPastedRoster();
+});
+
+getElement("apply-file").addEventListener("click", async () => {
+  await applyRosterFile();
 });
 
 render();
@@ -190,6 +196,73 @@ function applyPastedRoster(): void {
         : "붙여넣기 명단을 처리할 수 없습니다.",
     );
   }
+}
+
+async function applyRosterFile(): Promise<void> {
+  try {
+    const file = rosterFileInput.files?.[0];
+
+    if (!file) {
+      setError("적용할 Excel 파일을 선택하세요.");
+      return;
+    }
+
+    const fileBase64 = await readFileAsBase64(file);
+    const response = await fetch(parseRosterFileEndpoint, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ fileBase64 }),
+    });
+    const payload = (await response.json()) as {
+      rows?: Array<{
+        name: string;
+        email?: string;
+        department?: string;
+        appliedAsset?: string;
+      }>;
+      error?: string;
+    };
+
+    if (!response.ok || !payload.rows) {
+      throw new Error(payload.error ?? "Excel 파일을 처리할 수 없습니다.");
+    }
+
+    if (payload.rows.length === 0) {
+      setError("Excel 파일에서 참가자 명단을 찾지 못했습니다.");
+      return;
+    }
+
+    inputs = payload.rows.map((row) => ({
+      name: row.name,
+      ...(row.email ? { email: row.email } : {}),
+      ...(row.department ? { department: row.department } : {}),
+      ...(row.appliedAsset ? { appliedAsset: row.appliedAsset } : {}),
+    }));
+    render();
+    setError("");
+  } catch (error) {
+    setError(
+      error instanceof Error
+        ? error.message
+        : "Excel 파일을 처리할 수 없습니다.",
+    );
+  }
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => {
+      const result = String(reader.result);
+      resolve(result.split(",")[1] ?? "");
+    });
+    reader.addEventListener("error", () => {
+      reject(new Error("Excel 파일을 읽을 수 없습니다."));
+    });
+    reader.readAsDataURL(file);
+  });
 }
 
 function readWinnerCount(): number {

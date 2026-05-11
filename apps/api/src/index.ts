@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import * as XLSX from "xlsx";
 
 import { matchVisualAssets, type ImageResource } from "../../../packages/asset-matcher/src/index.js";
 import { createElectionBroadcastScenario } from "../../../packages/presentation-engine/src/index.js";
@@ -7,7 +8,10 @@ import {
   RaffleEngineError,
 } from "../../../packages/raffle-engine/src/index.js";
 import { createElectionBroadcastRenderProps } from "../../../packages/render-types/src/index.js";
-import { normalizeManualInputs } from "../../../packages/roster-import/src/index.js";
+import {
+  normalizeManualInputs,
+  parseRosterTable,
+} from "../../../packages/roster-import/src/index.js";
 import { createRendererPreviewModel } from "../../renderer/src/index.js";
 import {
   addHistoryEntry,
@@ -25,6 +29,10 @@ export type ManualPreviewRequest = {
   winnerCount?: number;
   allowPreviousWinners?: boolean;
   previousWinnerIds?: string[];
+};
+
+export type RosterFileParseRequest = {
+  fileBase64: string;
 };
 
 export type ManualPreviewResponse = {
@@ -143,11 +151,39 @@ export function createApiServer() {
         return;
       }
 
+      if (request.method === "POST" && request.url === "/api/parse-roster-file") {
+        const body = (await readJsonBody(request)) as RosterFileParseRequest;
+        sendJson(response, 200, {
+          rows: parseRosterFile(body.fileBase64),
+        });
+        return;
+      }
+
       sendJson(response, 404, { error: "Not found" });
     } catch (error) {
       sendJson(response, 400, createErrorPayload(error));
     }
   });
+}
+
+export function parseRosterFile(fileBase64: string) {
+  const workbook = XLSX.read(Buffer.from(fileBase64, "base64"), {
+    type: "buffer",
+  });
+  const firstSheetName = workbook.SheetNames[0];
+
+  if (!firstSheetName) {
+    throw new Error("Workbook does not contain any sheets.");
+  }
+
+  const sheet = workbook.Sheets[firstSheetName];
+  const table = XLSX.utils.sheet_to_json<string[]>(sheet, {
+    header: 1,
+    raw: false,
+    blankrows: false,
+  });
+
+  return parseRosterTable(table);
 }
 
 function createErrorPayload(error: unknown): {

@@ -9,7 +9,8 @@
     "@pick-me-maybe/raffle-engine": "file:../../packages/raffle-engine",
     "@pick-me-maybe/render-types": "file:../../packages/render-types",
     "@pick-me-maybe/roster-import": "file:../../packages/roster-import",
-    "@pick-me-maybe/shared": "file:../../packages/shared"
+    "@pick-me-maybe/shared": "file:../../packages/shared",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "node ../../dist/apps/api/src/index.js"
