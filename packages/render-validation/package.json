@@ -1,0 +1,8 @@
+{
+  "name": "@pick-me-maybe/render-validation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "../../dist/packages/render-validation/src/index.js",
+  "types": "../../dist/packages/render-validation/src/index.d.ts"
+}
