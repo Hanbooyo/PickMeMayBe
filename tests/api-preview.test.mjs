@@ -225,6 +225,55 @@ test("createApiServer returns structured raffle errors", async () => {
   }
 });
 
+test("createApiServer downloads validated render artifacts", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-renders-"));
+  const artifact = createMp4Fixture();
+  await writeFile(join(directory, "broadcast.mp4"), artifact);
+
+  const server = createApiServer({
+    renderDirectory: directory,
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const response = await fetch(
+      `http://127.0.0.1:${address.port}/api/renders/broadcast.mp4`,
+    );
+    const body = Buffer.from(await response.arrayBuffer());
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "video/mp4");
+    assert.equal(response.headers.get("content-length"), String(artifact.length));
+    assert.deepEqual(body, artifact);
+  } finally {
+    await close(server);
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("createApiServer rejects unsafe render artifact paths", async () => {
+  const server = createApiServer();
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const response = await fetch(
+      `http://127.0.0.1:${address.port}/api/renders/..%2Fsecret.mp4`,
+    );
+    const payload = await response.json();
+
+    assert.equal(response.status, 404);
+    assert.equal(payload.error, "Render artifact not found.");
+  } finally {
+    await close(server);
+  }
+});
+
 test("parseRosterFile parses xlsx workbook data", () => {
   const workbook = XLSX.utils.book_new();
   const sheet = XLSX.utils.aoa_to_sheet([

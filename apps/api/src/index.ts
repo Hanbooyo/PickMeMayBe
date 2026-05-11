@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { createReadStream } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import * as XLSX from "xlsx";
 
 import { matchVisualAssets, type ImageResource } from "../../../packages/asset-matcher/src/index.js";
@@ -43,6 +44,10 @@ export type RenderArtifactSummary = {
   path: string;
   sizeBytes: number;
   format: "mp4";
+};
+
+export type ApiServerOptions = {
+  renderDirectory?: string;
 };
 
 export type ManualPreviewResponse = {
@@ -170,7 +175,9 @@ export async function listRenderArtifacts(
   return artifacts.sort((left, right) => left.fileName.localeCompare(right.fileName));
 }
 
-export function createApiServer() {
+export function createApiServer(options: ApiServerOptions = {}) {
+  const renderDirectory = options.renderDirectory ?? "data/renders";
+
   return createServer(async (request, response) => {
     try {
       if (request.method === "OPTIONS") {
@@ -189,7 +196,15 @@ export function createApiServer() {
       }
 
       if (request.method === "GET" && request.url === "/api/renders") {
-        sendJson(response, 200, { renders: await listRenderArtifacts() });
+        sendJson(response, 200, {
+          renders: await listRenderArtifacts(renderDirectory),
+        });
+        return;
+      }
+
+      if (request.method === "GET" && request.url?.startsWith("/api/renders/")) {
+        const fileName = decodeURIComponent(request.url.slice("/api/renders/".length));
+        await sendRenderArtifact(response, renderDirectory, fileName);
         return;
       }
 
@@ -211,6 +226,37 @@ export function createApiServer() {
     } catch (error) {
       sendJson(response, 400, createErrorPayload(error));
     }
+  });
+}
+
+async function sendRenderArtifact(
+  response: ServerResponse,
+  renderDirectory: string,
+  fileName: string,
+): Promise<void> {
+  if (fileName !== basename(fileName) || !fileName.toLowerCase().endsWith(".mp4")) {
+    sendJson(response, 404, { error: "Render artifact not found." });
+    return;
+  }
+
+  const artifactPath = resolve(renderDirectory, fileName);
+  const artifact = await validateMp4RenderArtifact(artifactPath);
+
+  response.writeHead(200, {
+    "content-type": "video/mp4",
+    "content-length": String(artifact.sizeBytes),
+    "content-disposition": `attachment; filename="${encodeURIComponent(fileName)}"`,
+    "access-control-allow-origin": "*",
+    "access-control-allow-methods": "GET,POST,OPTIONS",
+    "access-control-allow-headers": "content-type",
+  });
+
+  await new Promise<void>((resolveStream, rejectStream) => {
+    const stream = createReadStream(artifactPath);
+    stream.once("error", rejectStream);
+    response.once("error", rejectStream);
+    response.once("finish", resolveStream);
+    stream.pipe(response);
   });
 }
 
