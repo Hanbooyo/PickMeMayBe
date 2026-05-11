@@ -15,6 +15,7 @@ const importedAt = new Date().toISOString();
 const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
 const historyEndpoint = "http://localhost:4317/api/history";
 const parseRosterFileEndpoint = "http://localhost:4317/api/parse-roster-file";
+const rendersEndpoint = "http://localhost:4317/api/renders";
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -42,7 +43,9 @@ const preview = getElement("preview");
 const errorMessage = getElement("error-message");
 const apiStatus = getElement("api-status");
 const history = getElement("history");
+const renderList = getElement("render-list");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
+const refreshRendersButton = getElement("refresh-renders") as HTMLButtonElement;
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
 const pasteRosterInput = getElement("paste-roster") as HTMLTextAreaElement;
 const rosterFileInput = getElement("roster-file") as HTMLInputElement;
@@ -77,9 +80,14 @@ getElement("apply-file").addEventListener("click", async () => {
   await applyRosterFile();
 });
 
+refreshRendersButton.addEventListener("click", async () => {
+  await loadRenderArtifacts();
+});
+
 render();
 void checkApiStatus();
 void loadHistory();
+void loadRenderArtifacts();
 void runPreview();
 
 function render(): void {
@@ -307,11 +315,39 @@ async function loadHistory(): Promise<void> {
   }
 }
 
+async function loadRenderArtifacts(): Promise<void> {
+  refreshRendersButton.disabled = true;
+
+  try {
+    const response = await fetch(rendersEndpoint);
+
+    if (!response.ok) {
+      throw new Error("Render artifact request failed.");
+    }
+
+    const payload = (await response.json()) as {
+      renders: RenderArtifactSummary[];
+    };
+    renderArtifacts(payload.renders);
+  } catch {
+    renderList.innerHTML = `<div class="empty-state">Render outputs are not available. Start the API server and run npm.cmd run render:sample.</div>`;
+  } finally {
+    refreshRendersButton.disabled = false;
+  }
+}
+
 type ManualPreviewApiResponse = {
   error?: string;
   code?: string;
   scenario: ElectionBroadcastScenario;
   history: RaffleHistoryEntry[];
+};
+
+type RenderArtifactSummary = {
+  fileName: string;
+  path: string;
+  sizeBytes: number;
+  format: "mp4";
 };
 
 function formatApiError(payload: ManualPreviewApiResponse): string {
@@ -352,12 +388,38 @@ function renderHistory(): void {
   `;
 }
 
+function renderArtifacts(renders: RenderArtifactSummary[]): void {
+  if (renders.length === 0) {
+    renderList.innerHTML = `<div class="empty-state">No render outputs yet. Run npm.cmd run render:sample.</div>`;
+    return;
+  }
+
+  renderList.innerHTML = renders
+    .map(
+      (render) => `
+        <article class="render-item">
+          <div class="render-name">${escapeHtml(render.fileName)}</div>
+          <div class="render-meta">${escapeHtml(render.format.toUpperCase())} · ${formatBytes(render.sizeBytes)}</div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
 function formatHistoryTime(value: string): string {
   return new Intl.DateTimeFormat("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
   }).format(new Date(value));
+}
+
+function formatBytes(sizeBytes: number): string {
+  if (sizeBytes < 1024 * 1024) {
+    return `${Math.round(sizeBytes / 1024)} KB`;
+  }
+
+  return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function renderPreview(

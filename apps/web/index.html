@@ -353,6 +353,65 @@
         font-weight: 800;
       }
 
+      .renders {
+        margin-top: 18px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .renders-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .renders h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .renders p {
+        margin: 4px 0 0;
+        color: #94a3b8;
+        font-size: 13px;
+      }
+
+      .render-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .render-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.58);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+
+      .render-name {
+        color: #f8fafc;
+        font-weight: 900;
+        overflow-wrap: anywhere;
+      }
+
+      .render-meta {
+        color: #94a3b8;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .empty-state {
+        color: #94a3b8;
+        border: 1px dashed rgba(148, 163, 184, 0.28);
+        border-radius: 8px;
+        padding: 12px;
+      }
+
       @media (max-width: 980px) {
         main {
           grid-template-columns: 1fr;
@@ -418,6 +477,16 @@
         </section>
         <section class="panel">
           <div class="preview" id="preview"></div>
+          <section class="renders">
+            <div class="renders-header">
+              <div>
+                <h2>Render outputs</h2>
+                <p>Generated MP4 files from the local render pipeline.</p>
+              </div>
+              <button id="refresh-renders" type="button">Refresh</button>
+            </div>
+            <div class="render-list" id="render-list"></div>
+          </section>
         </section>
       </main>
     </div>
