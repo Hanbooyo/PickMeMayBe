@@ -1,8 +1,4 @@
 import {
-  addHistoryEntry,
-  createHistoryEntryFromScenario,
-} from "../../../packages/history/src/index.js";
-import {
   addManualInputRow,
   createEmptyManualInput,
   normalizeManualInputs,
@@ -16,6 +12,7 @@ import type { ElectionBroadcastScenario } from "../../../packages/presentation-e
 
 const importedAt = new Date().toISOString();
 const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
+const historyEndpoint = "http://localhost:4317/api/history";
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -70,6 +67,7 @@ getElement("run-preview").addEventListener("click", async () => {
 
 render();
 void checkApiStatus();
+void loadHistory();
 void runPreview();
 
 function render(): void {
@@ -147,10 +145,7 @@ async function runPreview(): Promise<void> {
     }
 
     renderPreview(payload.scenario.cards, payload.scenario.winnerIds);
-    resultHistory = addHistoryEntry(
-      resultHistory,
-      createHistoryEntryFromScenario(payload.scenario, new Date().toISOString()),
-    );
+    resultHistory = payload.history;
     renderHistory();
     setApiStatus("ready", "API 연결됨");
   } catch (error) {
@@ -188,10 +183,30 @@ async function checkApiStatus(): Promise<void> {
   }
 }
 
+async function loadHistory(): Promise<void> {
+  try {
+    const response = await fetch(historyEndpoint);
+
+    if (!response.ok) {
+      throw new Error("History request failed.");
+    }
+
+    const payload = (await response.json()) as {
+      history: RaffleHistoryEntry[];
+    };
+    resultHistory = payload.history;
+    renderHistory();
+  } catch {
+    resultHistory = [];
+    renderHistory();
+  }
+}
+
 type ManualPreviewApiResponse = {
   error?: string;
   code?: string;
   scenario: ElectionBroadcastScenario;
+  history: RaffleHistoryEntry[];
 };
 
 function formatApiError(payload: ManualPreviewApiResponse): string {
