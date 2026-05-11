@@ -1,0 +1,6 @@
+{
+  "name": "@pick-me-maybe/renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@pick-me-maybe/asset-matcher",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "../../dist/packages/asset-matcher/src/index.js",
+  "types": "../../dist/packages/asset-matcher/src/index.d.ts"
+}

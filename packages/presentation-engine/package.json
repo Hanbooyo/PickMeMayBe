@@ -1,0 +1,8 @@
+{
+  "name": "@pick-me-maybe/presentation-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "../../dist/packages/presentation-engine/src/index.js",
+  "types": "../../dist/packages/presentation-engine/src/index.d.ts"
+}
