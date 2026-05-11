@@ -63,6 +63,8 @@ function getContentType(filePath) {
       return "image/jpeg";
     case ".webp":
       return "image/webp";
+    case ".svg":
+      return "image/svg+xml; charset=utf-8";
     default:
       return "application/octet-stream";
   }

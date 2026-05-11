@@ -111,7 +111,7 @@ export function normalizeLookupKey(value: string): string {
     .normalize("NFKC")
     .trim()
     .toLowerCase()
-    .replace(/\.(png|jpe?g|webp)$/i, "")
+    .replace(/\.(png|jpe?g|webp|svg)$/i, "")
     .replace(/[^a-z0-9가-힣]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }

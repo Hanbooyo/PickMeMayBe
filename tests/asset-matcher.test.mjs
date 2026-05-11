@@ -110,4 +110,5 @@ test("normalizeLookupKey removes file extensions and normalizes separators", () 
     normalizeLookupKey(" MinSu.Sales@example.com.PNG "),
     "minsu-sales-example-com",
   );
+  assert.equal(normalizeLookupKey("김민수.svg"), "김민수");
 });

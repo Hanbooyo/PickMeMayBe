@@ -255,6 +255,18 @@ npm.cmd run demo:api
 
 기본 포트는 `4317`이며, `GET /health`, `POST /api/manual-preview`를 제공합니다.
 
+샘플 이미지 resource:
+
+```text
+resources/faces/
+  anonymous.svg
+  김민수.svg
+  이서연.svg
+  박지훈.svg
+```
+
+웹 preview와 API preview는 이 샘플 resource를 사용합니다. 실제 운영에서는 같은 위치에 참가자 이름 또는 이메일 기준 이미지 파일을 추가하는 방식으로 확장합니다.
+
 ## Testing Plan
 
 향후 테스트는 다음 범위로 구성합니다.

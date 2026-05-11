@@ -45,20 +45,20 @@ const visualAssets = matchVisualAssets(
   normalized.participants,
   [
     {
-      key: "김민수.png",
-      path: "resources/faces/김민수.png",
+      key: "김민수.svg",
+      path: "resources/faces/김민수.svg",
     },
     {
-      key: "이서연.png",
-      path: "resources/faces/이서연.png",
+      key: "이서연.svg",
+      path: "resources/faces/이서연.svg",
     },
     {
-      key: "박지훈.png",
-      path: "resources/faces/박지훈.png",
+      key: "박지훈.svg",
+      path: "resources/faces/박지훈.svg",
     },
   ],
   {
-    anonymousImagePath: "resources/faces/anonymous.png",
+    anonymousImagePath: "resources/faces/anonymous.svg",
   },
 );
 

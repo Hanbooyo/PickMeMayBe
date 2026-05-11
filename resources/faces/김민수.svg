@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-label="김민수">
+  <rect width="240" height="240" rx="28" fill="#0f766e"/>
+  <circle cx="120" cy="92" r="42" fill="#ccfbf1"/>
+  <path d="M48 208c8-48 40-74 72-74s64 26 72 74" fill="#ccfbf1"/>
+  <text x="120" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#f8fafc">김민수</text>
+</svg>

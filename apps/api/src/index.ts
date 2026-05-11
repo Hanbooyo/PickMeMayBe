@@ -27,16 +27,16 @@ export type ManualPreviewResponse = {
 
 const defaultResources: ImageResource[] = [
   {
-    key: "김민수.png",
-    path: "resources/faces/김민수.png",
+    key: "김민수.svg",
+    path: "resources/faces/김민수.svg",
   },
   {
-    key: "이서연.png",
-    path: "resources/faces/이서연.png",
+    key: "이서연.svg",
+    path: "resources/faces/이서연.svg",
   },
   {
-    key: "박지훈.png",
-    path: "resources/faces/박지훈.png",
+    key: "박지훈.svg",
+    path: "resources/faces/박지훈.svg",
   },
 ];
 
@@ -61,7 +61,7 @@ export function createManualPreview(
     request.resources ?? defaultResources,
     {
       anonymousImagePath:
-        request.anonymousImagePath ?? "resources/faces/anonymous.png",
+        request.anonymousImagePath ?? "resources/faces/anonymous.svg",
     },
   );
   const raffleResult = drawWinners({

@@ -143,6 +143,7 @@ type ManualPreviewApiResponse = {
       name: string;
       department?: string;
       appliedAsset?: string;
+      imagePath: string;
       isWinner: boolean;
     }>;
   };
@@ -154,6 +155,7 @@ function renderPreview(
     name: string;
     department?: string;
     appliedAsset?: string;
+    imagePath: string;
     isWinner: boolean;
   }>,
   winnerIds: string[],
@@ -186,6 +188,7 @@ function createCandidateMarkup(card: {
   name: string;
   department?: string;
   appliedAsset?: string;
+  imagePath: string;
   isWinner: boolean;
 }): string {
   const meta = [card.department, card.appliedAsset].filter(Boolean).join(" · ");
@@ -193,7 +196,7 @@ function createCandidateMarkup(card: {
 
   return `
     <article class="candidate ${card.isWinner ? "winner" : ""}">
-      <div class="avatar">${escapeHtml(initial)}</div>
+      <img class="avatar" src="/${escapeHtml(card.imagePath)}" alt="${escapeHtml(card.name)}" onerror="this.replaceWith(Object.assign(document.createElement('div'), { className: 'avatar', textContent: '${escapeHtml(initial)}' }))" />
       <div>
         <div class="name">${escapeHtml(card.name)}</div>
         <div class="meta">${escapeHtml(meta)}</div>

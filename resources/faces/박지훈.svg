@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240" role="img" aria-label="박지훈">
+  <rect width="240" height="240" rx="28" fill="#1d4ed8"/>
+  <circle cx="120" cy="92" r="42" fill="#dbeafe"/>
+  <path d="M48 208c8-48 40-74 72-74s64 26 72 74" fill="#dbeafe"/>
+  <text x="120" y="224" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#eff6ff">박지훈</text>
+</svg>
