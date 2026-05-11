@@ -6,7 +6,7 @@ import { createSampleRenderOutputConfig } from "../dist/apps/renderer/src/render
 test("createSampleRenderOutputConfig returns sample render paths", () => {
   assert.deepEqual(createSampleRenderOutputConfig(), {
     compositionId: "ElectionBroadcastReveal",
-    entryPoint: "apps/renderer/src/Root.tsx",
+    entryPoint: "apps/renderer/src/remotionEntry.tsx",
     outputPath: "data/renders/election-broadcast-sample.mp4",
   });
 });

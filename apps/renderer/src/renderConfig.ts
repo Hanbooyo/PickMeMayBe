@@ -9,7 +9,7 @@ export function createSampleRenderOutputConfig(
 ): RenderOutputConfig {
   return {
     compositionId: "ElectionBroadcastReveal",
-    entryPoint: "apps/renderer/src/Root.tsx",
+    entryPoint: "apps/renderer/src/remotionEntry.tsx",
     outputPath,
   };
 }

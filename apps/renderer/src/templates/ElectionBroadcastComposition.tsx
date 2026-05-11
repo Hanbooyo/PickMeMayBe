@@ -38,10 +38,7 @@ export function ElectionBroadcastComposition({
                 ...(card.isWinner ? styles.winnerCandidate : {}),
               }}
             >
-              <Img
-                src={staticFile(card.imagePath)}
-                style={styles.avatar}
-              />
+              <Img src={resolveImageSource(card.imagePath)} style={styles.avatar} />
               <div style={styles.candidateText}>
                 <div style={styles.name}>{card.name}</div>
                 <div style={styles.meta}>
@@ -188,3 +185,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
   },
 };
+
+function resolveImageSource(imagePath: string): string {
+  if (imagePath.startsWith("data:") || imagePath.startsWith("http")) {
+    return imagePath;
+  }
+
+  return staticFile(imagePath);
+}
