@@ -389,6 +389,17 @@
         gap: 8px;
       }
 
+      .job-history {
+        display: grid;
+        gap: 8px;
+        margin-top: 4px;
+      }
+
+      .job-list {
+        display: grid;
+        gap: 8px;
+      }
+
       .render-item {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -423,6 +434,31 @@
 
       .render-download:hover {
         text-decoration: underline;
+      }
+
+      .job-item {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.44);
+        border-radius: 8px;
+        padding: 9px 10px;
+      }
+
+      .job-status {
+        min-width: 70px;
+        color: #fde68a;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .job-id,
+      .job-time {
+        color: #94a3b8;
+        font-size: 12px;
       }
 
       .empty-state {
@@ -509,6 +545,10 @@
               </div>
             </div>
             <div class="render-list" id="render-list"></div>
+            <div class="job-history">
+              <div class="history-title">Render job history</div>
+              <div class="job-list" id="render-job-list"></div>
+            </div>
           </section>
         </section>
       </main>

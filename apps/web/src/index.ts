@@ -46,6 +46,7 @@ const errorMessage = getElement("error-message");
 const apiStatus = getElement("api-status");
 const history = getElement("history");
 const renderList = getElement("render-list");
+const renderJobList = getElement("render-job-list");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
 const renderLatestButton = getElement("render-latest") as HTMLButtonElement;
 const refreshRendersButton = getElement("refresh-renders") as HTMLButtonElement;
@@ -85,6 +86,7 @@ getElement("apply-file").addEventListener("click", async () => {
 
 refreshRendersButton.addEventListener("click", async () => {
   await loadRenderArtifacts();
+  await loadRenderJobs();
 });
 
 renderLatestButton.addEventListener("click", async () => {
@@ -95,6 +97,7 @@ render();
 void checkApiStatus();
 void loadHistory();
 void loadRenderArtifacts();
+void loadRenderJobs();
 void runPreview();
 
 function render(): void {
@@ -367,6 +370,7 @@ async function renderLatestVideo(): Promise<void> {
     }
 
     renderArtifacts(completed.renders ?? []);
+    await loadRenderJobs();
   } catch (error) {
     renderList.innerHTML = `<div class="empty-state">${escapeHtml(
       error instanceof Error
@@ -395,9 +399,28 @@ type RenderArtifactSummary = {
 type RenderJob = {
   id: string;
   status: "queued" | "running" | "done" | "failed";
+  createdAt?: string;
+  updatedAt?: string;
   error?: string;
   renders?: RenderArtifactSummary[];
 };
+
+async function loadRenderJobs(): Promise<void> {
+  try {
+    const response = await fetch(renderJobsEndpoint);
+
+    if (!response.ok) {
+      throw new Error("Render job history request failed.");
+    }
+
+    const payload = (await response.json()) as {
+      jobs: RenderJob[];
+    };
+    renderJobs(payload.jobs);
+  } catch {
+    renderJobList.innerHTML = `<div class="empty-state">Render job history is not available.</div>`;
+  }
+}
 
 async function waitForRenderJob(jobId: string): Promise<RenderJob> {
   for (;;) {
@@ -481,7 +504,31 @@ function renderArtifacts(renders: RenderArtifactSummary[]): void {
     .join("");
 }
 
+function renderJobs(jobs: RenderJob[]): void {
+  if (jobs.length === 0) {
+    renderJobList.innerHTML = `<div class="empty-state">No render jobs yet.</div>`;
+    return;
+  }
+
+  renderJobList.innerHTML = jobs
+    .slice(0, 5)
+    .map(
+      (job) => `
+        <article class="job-item">
+          <div class="job-status">${escapeHtml(job.status)}</div>
+          <div class="job-id">${escapeHtml(job.id.slice(0, 8))}</div>
+          <div class="job-time">${escapeHtml(formatHistoryTime(job.updatedAt ?? job.createdAt ?? ""))}</div>
+        </article>
+      `,
+    )
+    .join("");
+}
+
 function formatHistoryTime(value: string): string {
+  if (!value) {
+    return "-";
+  }
+
   return new Intl.DateTimeFormat("ko-KR", {
     hour: "2-digit",
     minute: "2-digit",
