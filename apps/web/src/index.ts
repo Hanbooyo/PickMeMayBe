@@ -19,6 +19,8 @@ const rendersEndpoint = "http://localhost:4317/api/renders";
 const faceResourcesEndpoint = "http://localhost:4317/api/resources/faces";
 const renderLatestJobsEndpoint = "http://localhost:4317/api/render-latest-jobs";
 const renderJobsEndpoint = "http://localhost:4317/api/render-jobs";
+const renderJobPollIntervalMs = 1200;
+const renderJobMaxPolls = 150;
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -461,7 +463,7 @@ async function loadRenderJobs(): Promise<void> {
 }
 
 async function waitForRenderJob(jobId: string): Promise<RenderJob> {
-  for (;;) {
+  for (let pollCount = 0; pollCount < renderJobMaxPolls; pollCount += 1) {
     const response = await fetch(`${renderJobsEndpoint}/${encodeURIComponent(jobId)}`);
 
     if (!response.ok) {
@@ -479,8 +481,10 @@ async function waitForRenderJob(jobId: string): Promise<RenderJob> {
       return payload.job;
     }
 
-    await delay(1200);
+    await delay(renderJobPollIntervalMs);
   }
+
+  throw new Error("Render job polling timed out.");
 }
 
 function formatApiError(payload: ManualPreviewApiResponse): string {

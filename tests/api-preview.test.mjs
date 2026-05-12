@@ -15,6 +15,7 @@ import {
   listRenderJobs,
   listRenderArtifacts,
   parseRosterFile,
+  pruneRenderJobs,
 } from "../dist/apps/api/src/index.js";
 import * as XLSX from "xlsx";
 
@@ -517,6 +518,71 @@ test("listRenderJobs returns newest jobs first", async () => {
   }
 });
 
+test("createApiServer prunes completed render jobs by retention limit", async () => {
+  clearPreviewHistory();
+  clearRenderJobs();
+  createManualPreview(
+    {
+      participants: [
+        {
+          name: "Alpha",
+          email: "alpha@example.com",
+        },
+      ],
+    },
+    now,
+  );
+
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-pruned-renders-"));
+  const inputDirectory = await mkdtemp(join(tmpdir(), "pick-me-maybe-pruned-inputs-"));
+  const server = createApiServer({
+    renderDirectory: directory,
+    renderInputDirectory: inputDirectory,
+    maxRenderJobs: 1,
+    renderLatest: async (outputPath) => {
+      await writeFile(outputPath, createMp4Fixture());
+
+      return {
+        stdout: "job rendered",
+        stderr: "",
+      };
+    },
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const first = await fetch(`http://127.0.0.1:${address.port}/api/render-latest-jobs`, {
+      method: "POST",
+    });
+    const firstPayload = await first.json();
+    await waitForRenderJob(address.port, firstPayload.job.id);
+    await delay(5);
+
+    const second = await fetch(`http://127.0.0.1:${address.port}/api/render-latest-jobs`, {
+      method: "POST",
+    });
+    const secondPayload = await second.json();
+    await waitForRenderJob(address.port, secondPayload.job.id);
+
+    const jobs = listRenderJobs();
+    assert.equal(jobs.length, 1);
+    assert.equal(jobs[0].id, secondPayload.job.id);
+  } finally {
+    await close(server);
+    await rm(directory, { recursive: true, force: true });
+    await rm(inputDirectory, { recursive: true, force: true });
+    clearPreviewHistory();
+    clearRenderJobs();
+  }
+});
+
+test("pruneRenderJobs rejects invalid retention limits", () => {
+  assert.throws(() => pruneRenderJobs(0), /maxRenderJobs must be a positive integer/);
+});
+
 test("createApiServer records failed latest render jobs", async () => {
   clearPreviewHistory();
   clearRenderJobs();
@@ -731,6 +797,10 @@ async function waitForRenderJob(port, jobId) {
   }
 
   throw new Error(`Render job did not finish: ${jobId}`);
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function createMp4Fixture() {

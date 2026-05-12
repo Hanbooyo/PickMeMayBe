@@ -63,6 +63,7 @@ export type ApiServerOptions = {
   renderDirectory?: string;
   renderInputDirectory?: string;
   faceResourceDirectory?: string;
+  maxRenderJobs?: number;
   renderSample?: RenderSampleRunner;
   renderLatest?: RenderLatestRunner;
 };
@@ -118,6 +119,7 @@ const defaultResources: ImageResource[] = [
 let previewHistory: RaffleHistoryEntry[] = [];
 let latestRenderProps: ElectionBroadcastRenderProps | undefined;
 const renderJobs = new Map<string, RenderJob>();
+const defaultMaxRenderJobs = 20;
 
 export function createManualPreview(
   request: ManualPreviewRequest,
@@ -207,6 +209,20 @@ export function listRenderJobs(): RenderJob[] {
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
+export function pruneRenderJobs(maxRenderJobs = defaultMaxRenderJobs): void {
+  if (!Number.isInteger(maxRenderJobs) || maxRenderJobs < 1) {
+    throw new Error("maxRenderJobs must be a positive integer.");
+  }
+
+  const removableJobs = listRenderJobs().filter(
+    (job) => job.status === "done" || job.status === "failed",
+  );
+
+  for (const job of removableJobs.slice(maxRenderJobs)) {
+    renderJobs.delete(job.id);
+  }
+}
+
 export async function listRenderArtifacts(
   renderDirectory = "data/renders",
 ): Promise<RenderArtifactSummary[]> {
@@ -276,6 +292,7 @@ export function createApiServer(options: ApiServerOptions = {}) {
   const renderDirectory = options.renderDirectory ?? "data/renders";
   const renderInputDirectory = options.renderInputDirectory ?? "data/render-inputs";
   const faceResourceDirectory = options.faceResourceDirectory ?? "resources/faces";
+  const maxRenderJobs = options.maxRenderJobs ?? defaultMaxRenderJobs;
   const renderSample = options.renderSample ?? runSampleRenderCommand;
   const renderLatest = options.renderLatest ?? runLatestRenderCommand;
 
@@ -368,6 +385,7 @@ export function createApiServer(options: ApiServerOptions = {}) {
         const job = await enqueueLatestRenderJob({
           renderDirectory,
           renderInputDirectory,
+          maxRenderJobs,
           renderLatest,
         });
         sendJson(response, 202, { job });
@@ -402,10 +420,12 @@ export function createApiServer(options: ApiServerOptions = {}) {
 async function enqueueLatestRenderJob({
   renderDirectory,
   renderInputDirectory,
+  maxRenderJobs,
   renderLatest,
 }: {
   renderDirectory: string;
   renderInputDirectory: string;
+  maxRenderJobs: number;
   renderLatest: RenderLatestRunner;
 }): Promise<RenderJob> {
   const renderInput = await createLatestRenderInput(
@@ -422,9 +442,10 @@ async function enqueueLatestRenderJob({
     inputPropsPath: renderInput.inputPropsPath,
   };
   renderJobs.set(job.id, job);
+  pruneRenderJobs(maxRenderJobs);
 
   setImmediate(() => {
-    void runRenderJob(job.id, renderDirectory, renderLatest);
+    void runRenderJob(job.id, renderDirectory, maxRenderJobs, renderLatest);
   });
 
   return { ...job };
@@ -433,6 +454,7 @@ async function enqueueLatestRenderJob({
 async function runRenderJob(
   jobId: string,
   renderDirectory: string,
+  maxRenderJobs: number,
   renderLatest: RenderLatestRunner,
 ): Promise<void> {
   const job = renderJobs.get(jobId);
@@ -453,11 +475,13 @@ async function runRenderJob(
       result,
       renders,
     });
+    pruneRenderJobs(maxRenderJobs);
   } catch (error) {
     updateRenderJob(jobId, {
       status: "failed",
       error: error instanceof Error ? error.message : "Unknown render job error.",
     });
+    pruneRenderJobs(maxRenderJobs);
   }
 }
 
