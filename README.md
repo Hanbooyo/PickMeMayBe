@@ -175,6 +175,14 @@ Manual/Excel input
 
 웹에서는 `Render latest` 버튼을 누르면 API가 최신 추첨 preview를 기반으로 render job을 생성합니다. 웹은 `GET /api/render-jobs/:id`를 polling해서 `queued`, `running`, `done`, `failed` 상태를 표시하고 완료 후 MP4 목록을 갱신합니다.
 
+현재 렌더링된 영상의 의도:
+
+- 실제 당첨자 선정은 이미 끝난 상태에서, 그 결과를 선거 개표방송 스타일의 콘텐츠로 보여주는 MVP입니다.
+- `Standard` 모드는 후보 카드, 집계 바, 당첨자 패널을 통해 “개표 결과 발표 화면”을 표현합니다.
+- `Running race` 모드는 같은 추첨 결과를 레인/트랙 형태로 시각화해 “경주형 연출”로 보여줍니다.
+- 아직 실제 단체사진에서 사람이 움직이는 AI 영상은 아니며, 얼굴 리소스와 Remotion 애니메이션을 합성하는 중간 단계입니다.
+- 참가자가 많을 경우 웹 preview는 후보 목록 내부 스크롤로 확인하고, MP4 렌더는 인원 수에 따라 카드/레인 크기를 축소합니다.
+
 ## Development
 
 의존성 설치:

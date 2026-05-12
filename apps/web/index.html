@@ -335,7 +335,7 @@
 
       .preview-body {
         display: grid;
-        grid-template-columns: 1.15fr 0.85fr;
+        grid-template-columns: minmax(0, 1.25fr) minmax(180px, 0.75fr);
         gap: 18px;
         padding: 18px;
         min-height: 0;
@@ -345,11 +345,14 @@
         display: grid;
         gap: 10px;
         align-content: start;
+        min-height: 0;
+        overflow: auto;
+        padding-right: 4px;
       }
 
       .candidate {
         display: grid;
-        grid-template-columns: 54px 1fr 88px;
+        grid-template-columns: 46px minmax(0, 1fr) 74px;
         gap: 12px;
         align-items: center;
         border: 1px solid rgba(148, 163, 184, 0.22);
@@ -364,8 +367,8 @@
       }
 
       .avatar {
-        width: 48px;
-        height: 48px;
+        width: 42px;
+        height: 42px;
         border-radius: 8px;
         object-fit: cover;
         display: grid;
@@ -376,14 +379,16 @@
       }
 
       .name {
-        font-size: 18px;
+        font-size: 16px;
         font-weight: 900;
+        overflow-wrap: anywhere;
       }
 
       .meta {
         margin-top: 3px;
         color: #cbd5e1;
         font-size: 12px;
+        overflow-wrap: anywhere;
       }
 
       .bar {
@@ -407,6 +412,8 @@
         text-align: center;
         border-left: 1px solid rgba(148, 163, 184, 0.18);
         padding-left: 18px;
+        min-width: 0;
+        overflow: hidden;
       }
 
       .winner-label {
@@ -417,8 +424,11 @@
 
       .winner-name {
         margin-top: 8px;
-        font-size: 44px;
+        max-width: 100%;
+        font-size: clamp(22px, 4vw, 44px);
         font-weight: 900;
+        line-height: 1.08;
+        overflow-wrap: anywhere;
       }
 
       .preview footer {

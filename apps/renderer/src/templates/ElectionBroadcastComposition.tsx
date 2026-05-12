@@ -23,6 +23,7 @@ export function ElectionBroadcastComposition({
   const winnerCards = scenario.cards.filter((card) => card.isWinner);
   const race = scenario.presentationMode === "running-race" ? scenario.race : undefined;
   const isRaceMode = Boolean(race);
+  const density = createLayoutDensity(scenario.cards.length);
 
   return (
     <AbsoluteFill style={styles.root}>
@@ -32,7 +33,7 @@ export function ElectionBroadcastComposition({
       </div>
       <div style={styles.content}>
         {isRaceMode ? (
-          <div style={styles.raceTrack}>
+          <div style={{ ...styles.raceTrack, gap: density.raceGap }}>
             {race?.lanes.map((lane) => {
               const card = scenario.cards.find(
                 (candidate) => candidate.participantId === lane.participantId,
@@ -57,38 +58,64 @@ export function ElectionBroadcastComposition({
 
               return (
                 <div key={lane.participantId} style={styles.raceLane}>
-                  <div style={styles.laneLabel}>{lane.lane}</div>
-                  <div style={styles.laneRail}>
+                  <div style={{ ...styles.laneLabel, height: density.laneHeight }}>
+                    {lane.lane}
+                  </div>
+                  <div style={{ ...styles.laneRail, height: density.laneHeight }}>
                     <div
                       style={{
                         ...styles.runner,
+                        minWidth: density.runnerMinWidth,
                         left: `${laneProgress}%`,
                         ...(lane.isWinner ? styles.winnerRunner : {}),
                       }}
                     >
-                      <Img src={resolveImageSource(card.imagePath)} style={styles.runnerAvatar} />
-                      <span style={styles.runnerName}>{card.name}</span>
+                      <Img
+                        src={resolveImageSource(card.imagePath)}
+                        style={{
+                          ...styles.runnerAvatar,
+                          width: density.runnerAvatarSize,
+                          height: density.runnerAvatarSize,
+                        }}
+                      />
+                      <span style={{ ...styles.runnerName, fontSize: density.runnerFontSize }}>
+                        {card.name}
+                      </span>
                     </div>
                   </div>
-                  <div style={styles.rankLabel}>#{lane.finishRank}</div>
+                  <div style={{ ...styles.rankLabel, fontSize: density.rankFontSize }}>
+                    #{lane.finishRank}
+                  </div>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div style={styles.ranking}>
+          <div style={{ ...styles.ranking, gap: density.candidateGap }}>
             {scenario.cards.map((card, index) => (
               <div
                 key={card.participantId}
                 style={{
                   ...styles.candidate,
+                  gridTemplateColumns: `${density.avatarSize + 16}px 1fr 150px`,
+                  gap: density.candidateGap,
+                  padding: density.candidatePadding,
                   ...(card.isWinner ? styles.winnerCandidate : {}),
                 }}
               >
-                <Img src={resolveImageSource(card.imagePath)} style={styles.avatar} />
+                <Img
+                  src={resolveImageSource(card.imagePath)}
+                  style={{
+                    ...styles.avatar,
+                    width: density.avatarSize,
+                    height: density.avatarSize,
+                  }}
+                />
                 <div style={styles.candidateText}>
-                  <div style={styles.name}>{card.name}</div>
-                  <div style={styles.meta}>
+                  <div style={{ ...styles.name, fontSize: density.nameFontSize }}>
+                    {card.name}
+                  </div>
+                  <div style={{ ...styles.meta, fontSize: density.metaFontSize }}>
                     {[card.department, card.appliedAsset].filter(Boolean).join(" · ")}
                   </div>
                 </div>
@@ -109,6 +136,7 @@ export function ElectionBroadcastComposition({
           <div
             style={{
               ...styles.winnerName,
+              fontSize: density.winnerFontSize,
               opacity: revealProgress,
               transform: `scale(${0.88 + revealProgress * 0.12})`,
             }}
@@ -157,6 +185,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 42,
     padding: 54,
     flex: 1,
+    minHeight: 0,
   },
   ranking: {
     display: "grid",
@@ -222,6 +251,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 20,
     fontWeight: 900,
     whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
   rankLabel: {
     color: "#fde68a",
@@ -257,10 +288,16 @@ const styles: Record<string, React.CSSProperties> = {
   name: {
     fontSize: 32,
     fontWeight: 900,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   meta: {
     color: "#cbd5e1",
     fontSize: 20,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   bar: {
     height: 18,
@@ -290,6 +327,8 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 84,
     fontWeight: 900,
     lineHeight: 1.08,
+    maxWidth: "100%",
+    overflowWrap: "anywhere",
   },
   footer: {
     height: 72,
@@ -301,6 +340,57 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
   },
 };
+
+function createLayoutDensity(cardCount: number) {
+  if (cardCount >= 9) {
+    return {
+      avatarSize: 54,
+      candidateGap: 10,
+      candidatePadding: 10,
+      nameFontSize: 21,
+      metaFontSize: 14,
+      winnerFontSize: 52,
+      raceGap: 10,
+      laneHeight: 54,
+      runnerAvatarSize: 28,
+      runnerFontSize: 15,
+      runnerMinWidth: 112,
+      rankFontSize: 18,
+    };
+  }
+
+  if (cardCount >= 6) {
+    return {
+      avatarSize: 68,
+      candidateGap: 14,
+      candidatePadding: 12,
+      nameFontSize: 25,
+      metaFontSize: 16,
+      winnerFontSize: 64,
+      raceGap: 14,
+      laneHeight: 64,
+      runnerAvatarSize: 34,
+      runnerFontSize: 17,
+      runnerMinWidth: 132,
+      rankFontSize: 21,
+    };
+  }
+
+  return {
+    avatarSize: 96,
+    candidateGap: 20,
+    candidatePadding: 18,
+    nameFontSize: 32,
+    metaFontSize: 20,
+    winnerFontSize: 84,
+    raceGap: 22,
+    laneHeight: 82,
+    runnerAvatarSize: 42,
+    runnerFontSize: 20,
+    runnerMinWidth: 156,
+    rankFontSize: 24,
+  };
+}
 
 function resolveImageSource(imagePath: string): string {
   if (imagePath.startsWith("data:") || imagePath.startsWith("http")) {
