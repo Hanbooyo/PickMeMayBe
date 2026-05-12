@@ -304,12 +304,14 @@ GET  /api/render-jobs/:jobId
 ```powershell
 npm.cmd run build
 npm.cmd run typecheck
+npm.cmd run demo:smoke
+npm.cmd run render:sample
 npm.cmd test
 ```
 
 ## Current Status
 
-MVP 진행률: 약 95%
+MVP 진행률: 약 97%
 
 완료된 핵심 흐름:
 
@@ -323,10 +325,18 @@ participant input
 -> web list/download
 ```
 
+2026-05-12 시연 점검 결과:
+
+- `npm.cmd run demo:smoke` 통과
+- `npm.cmd run render:sample` 통과
+- 샘플 MP4 생성 확인: `data/renders/election-broadcast-sample.mp4`
+- `npm.cmd test` 통과, 총 63개 테스트
+
 다음 우선순위:
 
-1. Remotion template 시각 품질 개선
-2. 실제 이미지 업로드/관리 UX
-3. 단체사진/개별 얼굴 리소스 기반 compositing pipeline 설계
-4. 추가 추첨 연출 모드 확장
-5. MVP 마감 전 코드 리뷰와 리스크 정리
+1. README 기반 최종 시연 runbook 정리
+2. 브랜치 병합 전 최종 코드 리뷰
+3. Remotion template 시각 품질 개선
+4. 실제 이미지 업로드/관리 UX
+5. 단체사진/개별 얼굴 리소스 기반 compositing pipeline 설계
+6. 추가 추첨 연출 모드 확장
