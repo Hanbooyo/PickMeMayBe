@@ -331,14 +331,29 @@ function readWinnerCount(): number {
   return winnerCount;
 }
 
-type BroadcastPresentationMode = "standard" | "running-race";
+type BroadcastPresentationMode =
+  | "random"
+  | "dice-roll"
+  | "rock-paper-scissors"
+  | "vote-count"
+  | "running-race"
+  | "ladder-game";
 
 function readPresentationMode(): BroadcastPresentationMode {
-  if (presentationModeInput.value === "running-race") {
-    return "running-race";
+  const modes = new Set<BroadcastPresentationMode>([
+    "random",
+    "dice-roll",
+    "rock-paper-scissors",
+    "vote-count",
+    "running-race",
+    "ladder-game",
+  ]);
+
+  if (modes.has(presentationModeInput.value as BroadcastPresentationMode)) {
+    return presentationModeInput.value as BroadcastPresentationMode;
   }
 
-  return "standard";
+  return "random";
 }
 
 async function checkApiStatus(): Promise<void> {
@@ -708,30 +723,19 @@ function renderPreview(
   },
 ): void {
   const winnerIdSet = new Set(scenario.winnerIds);
-  const winnerNames = scenario.cards
-    .filter((card) => winnerIdSet.has(card.participantId))
-    .map((card) => card.name)
-    .join(", ");
-  const modeLabel =
-    scenario.presentationMode === "running-race"
-      ? "RUNNING RACE"
-      : "STANDARD";
+  const winnerCards = scenario.cards.filter((card) =>
+    winnerIdSet.has(card.participantId),
+  );
+  const modeLabel = formatPresentationMode(scenario.presentationMode ?? "dice-roll");
 
   preview.innerHTML = `
-    <header>
-      <h2>PickMeMaybe LIVE</h2>
-      <div class="badge">${modeLabel}</div>
-    </header>
-    <div class="preview-body">
-      <div class="candidates">
-        ${scenario.cards.map((card) => createCandidateMarkup(card)).join("")}
+    <div class="winner-only-stage">
+      <div class="mode-chip">${escapeHtml(modeLabel)}</div>
+      <div class="winner-label">당첨 인원 ${winnerCards.length}명</div>
+      <div class="winner-grid">
+        ${winnerCards.map((card) => createWinnerMarkup(card)).join("")}
       </div>
-      <aside class="winner-panel">
-        <div class="winner-label">최종 당첨 확정</div>
-        <div class="winner-name">${escapeHtml(winnerNames)}</div>
-      </aside>
     </div>
-    <footer>속보: ${modeLabel} 추첨 연출 데이터 생성 완료</footer>
   `;
 }
 
@@ -740,6 +744,7 @@ function renderSuspensePreview(
   participantCount: number,
 ): void {
   const isRaceMode = presentationMode === "running-race";
+  const modeLabel = formatPresentationMode(presentationMode);
   const visual = isRaceMode
     ? `
       <div class="race-suspense" aria-hidden="true">
@@ -761,25 +766,70 @@ function renderSuspensePreview(
         <div class="dice">?</div>
       </div>
     `;
-  const title = isRaceMode ? "레이스 진행 중" : "추첨 주사위 굴리는 중";
-  const subtitle = isRaceMode
-    ? `${participantCount}명의 주자가 결승선을 향해 달리고 있습니다.`
-    : `${participantCount}명의 참가자 중 당첨자를 집계하고 있습니다.`;
+  const title = createSuspenseTitle(presentationMode);
+  const subtitle = `${participantCount}명의 참가자 중 당첨자를 집계하고 있습니다.`;
 
   preview.innerHTML = `
-    <header>
-      <h2>PickMeMaybe LIVE</h2>
-      <div class="badge">${isRaceMode ? "RUNNING RACE" : "SUSPENSE"}</div>
-    </header>
     <div class="suspense-stage">
+      <div class="mode-chip">${escapeHtml(modeLabel)}</div>
       ${visual}
       <div>
         <div class="suspense-title">${escapeHtml(title)}</div>
         <div class="suspense-subtitle">${escapeHtml(subtitle)}</div>
       </div>
     </div>
-    <footer>속보: 공정 추첨 결과 집계 중</footer>
   `;
+}
+
+function createWinnerMarkup(card: {
+  name: string;
+  department?: string;
+  appliedAsset?: string;
+  imagePath: string;
+}): string {
+  const meta = [card.department, card.appliedAsset].filter(Boolean).join(" · ");
+  const initial = card.name.slice(0, 1);
+
+  return `
+    <article class="winner-card">
+      <img class="winner-avatar" src="/${escapeHtml(card.imagePath)}" alt="${escapeHtml(card.name)}" onerror="this.replaceWith(Object.assign(document.createElement('div'), { className: 'winner-avatar', textContent: '${escapeHtml(initial)}' }))" />
+      <div class="winner-name">${escapeHtml(card.name)}</div>
+      <div class="winner-meta">${escapeHtml(meta)}</div>
+    </article>
+  `;
+}
+
+function formatPresentationMode(mode: BroadcastPresentationMode): string {
+  switch (mode) {
+    case "random":
+      return "Random";
+    case "dice-roll":
+      return "Dice roll";
+    case "rock-paper-scissors":
+      return "Rock paper scissors";
+    case "vote-count":
+      return "Vote count";
+    case "running-race":
+      return "Running race";
+    case "ladder-game":
+      return "Ladder game";
+  }
+}
+
+function createSuspenseTitle(mode: BroadcastPresentationMode): string {
+  switch (mode) {
+    case "rock-paper-scissors":
+      return "가위바위보 대결 중";
+    case "vote-count":
+      return "득표 집계 중";
+    case "running-race":
+      return "레이스 진행 중";
+    case "ladder-game":
+      return "사다리 경로 추적 중";
+    case "random":
+    case "dice-roll":
+      return "추첨 주사위 굴리는 중";
+  }
 }
 
 function createCandidateMarkup(card: {

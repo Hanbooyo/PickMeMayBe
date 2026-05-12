@@ -27,7 +27,13 @@ export type BroadcastCandidateCard = {
   isWinner: boolean;
 };
 
-export type BroadcastPresentationMode = "standard" | "running-race";
+export type BroadcastPresentationMode =
+  | "random"
+  | "dice-roll"
+  | "rock-paper-scissors"
+  | "vote-count"
+  | "running-race"
+  | "ladder-game";
 
 export type BroadcastRaceLane = {
   participantId: string;
@@ -76,7 +82,10 @@ export function createElectionBroadcastScenario(
 
   const participantIds = input.raffleResult.candidateIds;
   const winnerIdSet = new Set(input.raffleResult.winnerIds);
-  const presentationMode = input.presentationMode ?? "standard";
+  const presentationMode =
+    input.presentationMode === "random" || !input.presentationMode
+      ? selectPresentationMode(input.raffleResult.id)
+      : input.presentationMode;
   validateWinnersBelongToCandidates(input.raffleResult);
   const cards = participantIds.map((participantId) => {
     const participant = participantIndex.get(participantId);
@@ -122,6 +131,22 @@ export function createElectionBroadcastScenario(
   }
 
   return scenario;
+}
+
+export function selectPresentationMode(seed: string): Exclude<BroadcastPresentationMode, "random"> {
+  const modes: Array<Exclude<BroadcastPresentationMode, "random">> = [
+    "dice-roll",
+    "rock-paper-scissors",
+    "vote-count",
+    "running-race",
+    "ladder-game",
+  ];
+  const hash = [...seed].reduce(
+    (accumulator, character) => accumulator + character.charCodeAt(0),
+    0,
+  );
+
+  return modes[hash % modes.length];
 }
 
 export function createBroadcastRace(

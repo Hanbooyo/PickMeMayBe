@@ -65,7 +65,7 @@ test("createElectionBroadcastScenario creates winner cards and timeline", () => 
 
   assert.equal(scenario.id, "scenario-1");
   assert.equal(scenario.mode, "election-broadcast");
-  assert.equal(scenario.presentationMode, "standard");
+  assert.equal(scenario.presentationMode, "running-race");
   assert.equal(scenario.aspectRatio, "16:9");
   assert.deepEqual(scenario.participantIds, ["p1", "p2"]);
   assert.deepEqual(scenario.winnerIds, ["p2"]);
@@ -83,6 +83,20 @@ test("createElectionBroadcastScenario creates winner cards and timeline", () => 
       "celebration",
     ],
   );
+});
+
+test("createElectionBroadcastScenario selects a deterministic random presentation mode", () => {
+  const scenario = createElectionBroadcastScenario({
+    id: "scenario-random",
+    title: "PickMeMaybe LIVE",
+    raffleResult,
+    participants,
+    visualAssets,
+    presentationMode: "random",
+    durationSeconds: 10,
+  });
+
+  assert.equal(scenario.presentationMode, "running-race");
 });
 
 test("createElectionBroadcastScenario creates running race metadata", () => {

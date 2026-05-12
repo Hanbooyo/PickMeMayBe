@@ -377,7 +377,7 @@
           linear-gradient(135deg, #023047, #00689b 48%, #008ccb);
         border-radius: 28px;
         display: grid;
-        grid-template-rows: auto 1fr auto;
+        place-items: center;
         overflow: hidden;
         box-shadow: 0 24px 56px rgba(0, 103, 148, 0.28);
       }
@@ -493,6 +493,70 @@
         padding: 12px 18px;
         background: rgba(0, 140, 203, 0.96);
         font-weight: 800;
+      }
+
+      .winner-only-stage {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 18px;
+        padding: 28px;
+        text-align: center;
+      }
+
+      .mode-chip {
+        display: inline-grid;
+        place-items: center;
+        min-width: 126px;
+        padding: 9px 18px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.16);
+        color: #caf0f8;
+        font-size: 13px;
+        font-weight: 900;
+        text-transform: uppercase;
+      }
+
+      .winner-grid {
+        width: min(92%, 720px);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 16px;
+      }
+
+      .winner-card {
+        width: min(190px, 42%);
+        min-width: 148px;
+        display: grid;
+        justify-items: center;
+        gap: 8px;
+        padding: 18px 16px;
+        border-radius: 36px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.14);
+        box-shadow: 0 14px 30px rgba(2, 48, 71, 0.22);
+      }
+
+      .winner-avatar {
+        width: 74px;
+        height: 74px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        object-fit: cover;
+        background: rgba(202, 240, 248, 0.22);
+        color: #f8fafc;
+        font-size: 30px;
+        font-weight: 900;
+      }
+
+      .winner-meta {
+        color: #cbd5e1;
+        font-size: 12px;
+        overflow-wrap: anywhere;
       }
 
       .suspense-stage {
@@ -756,8 +820,12 @@
             <label>
               연출 모드
               <select id="presentation-mode">
-                <option value="standard">Standard</option>
+                <option value="random">Random</option>
+                <option value="dice-roll">Dice roll</option>
+                <option value="rock-paper-scissors">Rock paper scissors</option>
+                <option value="vote-count">Vote count</option>
                 <option value="running-race">Running race</option>
+                <option value="ladder-game">Ladder game</option>
               </select>
             </label>
             <label class="checkbox-label">
