@@ -258,6 +258,44 @@ http://localhost:4318/apps/web/index.html
 7. `Render outputs` 목록에서 생성된 MP4를 확인합니다.
 8. `Download MP4` 링크로 영상을 다운로드합니다.
 
+### Demo Runbook
+
+시연 전 점검:
+
+```powershell
+npm.cmd install
+npm.cmd run demo:smoke
+npm.cmd run render:sample
+npm.cmd test
+```
+
+실제 시연:
+
+```powershell
+# terminal 1
+npm.cmd run demo:api
+
+# terminal 2
+npm.cmd run demo:web
+```
+
+시연 체크리스트:
+
+1. `Face resources` 패널에서 로컬 얼굴 리소스 수가 표시되는지 확인합니다.
+2. 수동 입력으로 참가자를 추가/삭제하고 값이 유지되는지 확인합니다.
+3. Excel 업로드 또는 paste로 명단이 들어오는지 확인합니다.
+4. `추첨 실행` 후 winner, timeline, `Asset matches` 요약이 표시되는지 확인합니다.
+5. `Render latest` 실행 후 render job 상태가 `done`이 되는지 확인합니다.
+6. `Render outputs`에 MP4가 표시되고 다운로드 링크가 열리는지 확인합니다.
+
+시연 중 주의사항:
+
+- API 서버는 기본 `http://localhost:4317`에서 실행됩니다.
+- Web preview는 기본 `http://localhost:4318/apps/web/index.html`에서 실행됩니다.
+- Remotion 렌더는 로컬 CPU를 사용하므로 첫 렌더는 수 초 이상 걸릴 수 있습니다.
+- face resource 파일명은 참가자 이름과 일치할수록 매칭 성공률이 높습니다.
+- 현재는 단체사진 AI segmentation이 아니라 개별 얼굴 리소스 기반 합성 MVP입니다.
+
 ## API
 
 주요 endpoint:
@@ -332,10 +370,18 @@ participant input
 - 샘플 MP4 생성 확인: `data/renders/election-broadcast-sample.mp4`
 - `npm.cmd test` 통과, 총 63개 테스트
 
+브랜치 병합 전 점검 결과:
+
+- 로컬 MVP 시연 경로는 통과했습니다.
+- 핵심 테스트는 63개 통과 상태입니다.
+- 추첨 로직은 crypto 기반 random을 사용합니다.
+- render job, MP4, render input JSON은 기본 20개까지 보관합니다.
+- 남은 주요 리스크는 배포 환경용 API base URL 설정, 이미지 업로드 UX, 실제 단체사진 처리 pipeline입니다.
+
 다음 우선순위:
 
-1. README 기반 최종 시연 runbook 정리
-2. 브랜치 병합 전 최종 코드 리뷰
+1. 브랜치 병합 또는 PR 생성
+2. 배포 환경용 API base URL 설정
 3. Remotion template 시각 품질 개선
 4. 실제 이미지 업로드/관리 UX
 5. 단체사진/개별 얼굴 리소스 기반 compositing pipeline 설계
