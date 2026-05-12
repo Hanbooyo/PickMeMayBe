@@ -18,6 +18,7 @@ test("static web server serves the manual preview page", async () => {
     assert.equal(response.status, 200);
     assert.match(response.headers.get("content-type"), /text\/html/);
     assert.match(body, /PickMeMaybe Manual Preview/);
+    assert.match(body, /Face resources/);
     assert.match(body, /Render outputs/);
     assert.match(body, /Render job history/);
   } finally {

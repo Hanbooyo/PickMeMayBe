@@ -180,6 +180,27 @@
         gap: 8px;
       }
 
+      .resource-panel {
+        margin-top: 18px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .resource-summary {
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.58);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+
+      .resource-files {
+        margin-top: 6px;
+        color: #94a3b8;
+        overflow-wrap: anywhere;
+      }
+
       .history-title {
         color: #94a3b8;
         font-size: 13px;
@@ -529,6 +550,10 @@
           </div>
           <div class="table" id="participant-table"></div>
           <div class="error" id="error-message"></div>
+          <section class="resource-panel">
+            <div class="history-title">Face resources</div>
+            <div class="resource-summary" id="resource-summary"></div>
+          </section>
           <div class="history" id="history"></div>
         </section>
         <section class="panel">

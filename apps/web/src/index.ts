@@ -16,6 +16,7 @@ const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
 const historyEndpoint = "http://localhost:4317/api/history";
 const parseRosterFileEndpoint = "http://localhost:4317/api/parse-roster-file";
 const rendersEndpoint = "http://localhost:4317/api/renders";
+const faceResourcesEndpoint = "http://localhost:4317/api/resources/faces";
 const renderLatestJobsEndpoint = "http://localhost:4317/api/render-latest-jobs";
 const renderJobsEndpoint = "http://localhost:4317/api/render-jobs";
 let inputs: ManualParticipantInput[] = [
@@ -45,6 +46,7 @@ const preview = getElement("preview");
 const errorMessage = getElement("error-message");
 const apiStatus = getElement("api-status");
 const history = getElement("history");
+const resourceSummary = getElement("resource-summary");
 const renderList = getElement("render-list");
 const renderJobList = getElement("render-job-list");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
@@ -96,6 +98,7 @@ renderLatestButton.addEventListener("click", async () => {
 render();
 void checkApiStatus();
 void loadHistory();
+void loadFaceResources();
 void loadRenderArtifacts();
 void loadRenderJobs();
 void runPreview();
@@ -325,6 +328,23 @@ async function loadHistory(): Promise<void> {
   }
 }
 
+async function loadFaceResources(): Promise<void> {
+  try {
+    const response = await fetch(faceResourcesEndpoint);
+
+    if (!response.ok) {
+      throw new Error("Face resource request failed.");
+    }
+
+    const payload = (await response.json()) as {
+      resources: FaceResourceSummary[];
+    };
+    renderFaceResources(payload.resources);
+  } catch {
+    resourceSummary.innerHTML = "Face resources are not available.";
+  }
+}
+
 async function loadRenderArtifacts(): Promise<void> {
   refreshRendersButton.disabled = true;
 
@@ -394,6 +414,13 @@ type RenderArtifactSummary = {
   path: string;
   sizeBytes: number;
   format: "mp4";
+};
+
+type FaceResourceSummary = {
+  fileName: string;
+  key: string;
+  path: string;
+  format: "svg" | "png" | "jpg" | "jpeg" | "webp";
 };
 
 type RenderJob = {
@@ -480,6 +507,26 @@ function renderHistory(): void {
         `,
       )
       .join("")}
+  `;
+}
+
+function renderFaceResources(resources: FaceResourceSummary[]): void {
+  if (resources.length === 0) {
+    resourceSummary.innerHTML = "No face resources found.";
+    return;
+  }
+
+  const names = resources
+    .slice(0, 6)
+    .map((resource) => resource.fileName)
+    .join(", ");
+  const remaining = Math.max(resources.length - 6, 0);
+
+  resourceSummary.innerHTML = `
+    <strong>${resources.length}</strong> image resources available
+    <div class="resource-files">
+      ${escapeHtml(names)}${remaining > 0 ? `, +${remaining} more` : ""}
+    </div>
   `;
 }
 
