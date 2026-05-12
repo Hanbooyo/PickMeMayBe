@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -285,6 +285,84 @@ test("createApiServer triggers a sample render runner", async () => {
   } finally {
     await close(server);
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("createApiServer renders the latest manual preview", async () => {
+  clearPreviewHistory();
+  createManualPreview(
+    {
+      participants: [
+        {
+          name: "Alpha",
+          email: "alpha@example.com",
+        },
+      ],
+    },
+    now,
+  );
+
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-renders-"));
+  const inputDirectory = await mkdtemp(join(tmpdir(), "pick-me-maybe-render-inputs-"));
+  const server = createApiServer({
+    renderDirectory: directory,
+    renderInputDirectory: inputDirectory,
+    renderLatest: async (outputPath, inputPropsPath) => {
+      const inputProps = JSON.parse(await readFile(inputPropsPath, "utf8"));
+      assert.equal(inputProps.scenario.cards[0].name, "Alpha");
+      await writeFile(outputPath, createMp4Fixture());
+
+      return {
+        stdout: `rendered ${outputPath}`,
+        stderr: "",
+      };
+    },
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/render-latest`, {
+      method: "POST",
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.match(payload.render.stdout, /rendered/);
+    assert.equal(payload.renders.length, 1);
+    assert.match(payload.renders[0].fileName, /^election-broadcast-/);
+  } finally {
+    await close(server);
+    await rm(directory, { recursive: true, force: true });
+    await rm(inputDirectory, { recursive: true, force: true });
+    clearPreviewHistory();
+  }
+});
+
+test("createApiServer rejects latest render without a preview", async () => {
+  clearPreviewHistory();
+  const server = createApiServer({
+    renderLatest: async () => {
+      throw new Error("Should not render without preview.");
+    },
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/render-latest`, {
+      method: "POST",
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(payload.error, "No latest raffle preview is available to render.");
+  } finally {
+    await close(server);
   }
 });
 

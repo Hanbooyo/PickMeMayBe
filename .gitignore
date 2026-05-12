@@ -9,6 +9,7 @@ reports/
 data/dev.db
 data/uploads/
 data/renders/
+data/render-inputs/
 data/thumbnails/
 
 *.log

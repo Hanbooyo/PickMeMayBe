@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createReadStream } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -12,7 +12,10 @@ import {
   drawWinners,
   RaffleEngineError,
 } from "../../../packages/raffle-engine/src/index.js";
-import { createElectionBroadcastRenderProps } from "../../../packages/render-types/src/index.js";
+import {
+  createElectionBroadcastRenderProps,
+  type ElectionBroadcastRenderProps,
+} from "../../../packages/render-types/src/index.js";
 import { validateMp4RenderArtifact } from "../../../packages/render-validation/src/index.js";
 import {
   normalizeManualInputs,
@@ -50,10 +53,16 @@ export type RenderArtifactSummary = {
 
 export type ApiServerOptions = {
   renderDirectory?: string;
+  renderInputDirectory?: string;
   renderSample?: RenderSampleRunner;
+  renderLatest?: RenderLatestRunner;
 };
 
 export type RenderSampleRunner = () => Promise<RenderSampleResult>;
+export type RenderLatestRunner = (
+  outputPath: string,
+  inputPropsPath: string,
+) => Promise<RenderSampleResult>;
 
 export type RenderSampleResult = {
   stdout: string;
@@ -84,6 +93,7 @@ const defaultResources: ImageResource[] = [
   },
 ];
 let previewHistory: RaffleHistoryEntry[] = [];
+let latestRenderProps: ElectionBroadcastRenderProps | undefined;
 
 export function createManualPreview(
   request: ManualPreviewRequest,
@@ -128,6 +138,7 @@ export function createManualPreview(
     durationSeconds: 10,
   });
   const renderProps = createElectionBroadcastRenderProps(scenario);
+  latestRenderProps = renderProps;
   const preview = createRendererPreviewModel(renderProps);
   previewHistory = addHistoryEntry(
     previewHistory,
@@ -150,6 +161,7 @@ export function getPreviewHistory(): RaffleHistoryEntry[] {
 
 export function clearPreviewHistory(): void {
   previewHistory = [];
+  latestRenderProps = undefined;
 }
 
 export async function listRenderArtifacts(
@@ -187,7 +199,9 @@ export async function listRenderArtifacts(
 
 export function createApiServer(options: ApiServerOptions = {}) {
   const renderDirectory = options.renderDirectory ?? "data/renders";
+  const renderInputDirectory = options.renderInputDirectory ?? "data/render-inputs";
   const renderSample = options.renderSample ?? runSampleRenderCommand;
+  const renderLatest = options.renderLatest ?? runLatestRenderCommand;
 
   return createServer(async (request, response) => {
     try {
@@ -242,6 +256,22 @@ export function createApiServer(options: ApiServerOptions = {}) {
         return;
       }
 
+      if (request.method === "POST" && request.url === "/api/render-latest") {
+        const renderInput = await createLatestRenderInput(
+          renderDirectory,
+          renderInputDirectory,
+        );
+        const result = await renderLatest(
+          renderInput.outputPath,
+          renderInput.inputPropsPath,
+        );
+        sendJson(response, 200, {
+          render: result,
+          renders: await listRenderArtifacts(renderDirectory),
+        });
+        return;
+      }
+
       sendJson(response, 404, { error: "Not found" });
     } catch (error) {
       sendJson(response, 400, createErrorPayload(error));
@@ -253,6 +283,51 @@ async function runSampleRenderCommand(): Promise<RenderSampleResult> {
   const { stdout, stderr } = await promisify(execFile)(
     "npm.cmd",
     ["run", "render:sample"],
+    {
+      cwd: process.cwd(),
+      timeout: 600_000,
+      windowsHide: true,
+    },
+  );
+
+  return {
+    stdout,
+    stderr,
+  };
+}
+
+async function createLatestRenderInput(
+  renderDirectory: string,
+  inputDirectory: string,
+): Promise<{
+  outputPath: string;
+  inputPropsPath: string;
+}> {
+  if (!latestRenderProps) {
+    throw new Error("No latest raffle preview is available to render.");
+  }
+
+  const timestamp = new Date().toISOString().replaceAll(/[:.]/g, "-");
+  const outputPath = join(renderDirectory, `election-broadcast-${timestamp}.mp4`);
+  const inputPropsPath = join(inputDirectory, `latest-${timestamp}.json`);
+
+  await mkdir(renderDirectory, { recursive: true });
+  await mkdir(inputDirectory, { recursive: true });
+  await writeFile(inputPropsPath, JSON.stringify(latestRenderProps, null, 2));
+
+  return {
+    outputPath,
+    inputPropsPath,
+  };
+}
+
+async function runLatestRenderCommand(
+  outputPath: string,
+  inputPropsPath: string,
+): Promise<RenderSampleResult> {
+  const { stdout, stderr } = await promisify(execFile)(
+    "npm.cmd",
+    ["run", "render:sample", "--", outputPath, inputPropsPath],
     {
       cwd: process.cwd(),
       timeout: 600_000,
