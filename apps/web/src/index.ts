@@ -47,6 +47,7 @@ const errorMessage = getElement("error-message");
 const apiStatus = getElement("api-status");
 const history = getElement("history");
 const resourceSummary = getElement("resource-summary");
+const assetMatchList = getElement("asset-match-list");
 const renderList = getElement("render-list");
 const renderJobList = getElement("render-job-list");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
@@ -178,6 +179,7 @@ async function runPreview(): Promise<void> {
     }
 
     renderPreview(payload.scenario.cards, payload.scenario.winnerIds);
+    renderAssetMatches(payload.scenario.cards, payload.visualAssets);
     resultHistory = payload.history;
     renderHistory();
     setApiStatus("ready", "API 연결됨");
@@ -406,7 +408,15 @@ type ManualPreviewApiResponse = {
   error?: string;
   code?: string;
   scenario: ElectionBroadcastScenario;
+  visualAssets: VisualAssetSummary[];
   history: RaffleHistoryEntry[];
+};
+
+type VisualAssetSummary = {
+  participantId: string;
+  imagePath: string;
+  status: "matched" | "anonymous";
+  matchedBy: "name" | "email" | "name-and-department" | "fallback";
 };
 
 type RenderArtifactSummary = {
@@ -528,6 +538,40 @@ function renderFaceResources(resources: FaceResourceSummary[]): void {
       ${escapeHtml(names)}${remaining > 0 ? `, +${remaining} more` : ""}
     </div>
   `;
+}
+
+function renderAssetMatches(
+  cards: Array<{
+    participantId: string;
+    name: string;
+  }>,
+  visualAssets: VisualAssetSummary[],
+): void {
+  const cardByParticipantId = new Map(
+    cards.map((card) => [card.participantId, card]),
+  );
+
+  if (visualAssets.length === 0) {
+    assetMatchList.innerHTML = `<div class="empty-state">No asset match data yet.</div>`;
+    return;
+  }
+
+  assetMatchList.innerHTML = visualAssets
+    .map((asset) => {
+      const card = cardByParticipantId.get(asset.participantId);
+      const status = asset.status === "matched" ? asset.matchedBy : "anonymous";
+
+      return `
+        <article class="asset-match-item">
+          <div>
+            <div class="asset-match-name">${escapeHtml(card?.name ?? asset.participantId)}</div>
+            <div class="asset-match-path">${escapeHtml(asset.imagePath)}</div>
+          </div>
+          <div class="asset-match-status">${escapeHtml(status)}</div>
+        </article>
+      `;
+    })
+    .join("");
 }
 
 function renderArtifacts(renders: RenderArtifactSummary[]): void {

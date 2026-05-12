@@ -186,6 +186,12 @@
         gap: 8px;
       }
 
+      .asset-match-panel {
+        margin-top: 18px;
+        display: grid;
+        gap: 8px;
+      }
+
       .resource-summary {
         color: #cbd5e1;
         border: 1px solid rgba(148, 163, 184, 0.22);
@@ -199,6 +205,42 @@
         margin-top: 6px;
         color: #94a3b8;
         overflow-wrap: anywhere;
+      }
+
+      .asset-match-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .asset-match-item {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.58);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+
+      .asset-match-name {
+        color: #f8fafc;
+        font-weight: 900;
+      }
+
+      .asset-match-path {
+        margin-top: 4px;
+        color: #94a3b8;
+        font-size: 12px;
+        overflow-wrap: anywhere;
+      }
+
+      .asset-match-status {
+        color: #fde68a;
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        white-space: nowrap;
       }
 
       .history-title {
@@ -553,6 +595,10 @@
           <section class="resource-panel">
             <div class="history-title">Face resources</div>
             <div class="resource-summary" id="resource-summary"></div>
+          </section>
+          <section class="asset-match-panel">
+            <div class="history-title">Asset matches</div>
+            <div class="asset-match-list" id="asset-match-list"></div>
           </section>
           <div class="history" id="history"></div>
         </section>
