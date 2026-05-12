@@ -146,7 +146,7 @@ Excel 예상 컬럼:
 
 웹 preview는 추첨 실행 후 `Asset matches` 패널에 참가자별 이미지 경로와 매칭 방식을 표시합니다. 상단 요약에서 실제 매칭된 참가자 수와 anonymous fallback 수를 확인할 수 있습니다.
 
-얼굴 리소스는 `resources/faces` 디렉터리에서 읽습니다. 현재 지원 확장자는 다음과 같습니다.
+얼굴 리소스는 `resources/faces` 디렉터리에서 읽습니다. `POST /api/manual-preview` 요청에 별도 `resources`가 없으면 API가 이 디렉터리의 이미지 목록을 자동으로 매칭 후보로 사용합니다. 현재 지원 확장자는 다음과 같습니다.
 
 ```text
 svg

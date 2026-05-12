@@ -10,6 +10,7 @@ import {
   createApiServer,
   createManualPreview,
   getPreviewHistory,
+  listFaceImageResources,
   listFaceResources,
   listRenderJobs,
   listRenderArtifacts,
@@ -197,6 +198,49 @@ test("createApiServer responds to manual preview HTTP requests", async () => {
     assert.equal(Array.isArray(resourcesPayload.resources), true);
   } finally {
     await close(server);
+  }
+});
+
+test("createApiServer uses face resources for manual preview matching", async () => {
+  clearPreviewHistory();
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-api-faces-"));
+  await writeFile(join(directory, "Alpha.svg"), "<svg></svg>");
+
+  const server = createApiServer({
+    faceResourceDirectory: directory,
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/manual-preview`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        participants: [
+          {
+            name: "Alpha",
+            email: "alpha@example.com",
+          },
+        ],
+      }),
+    });
+    const payload = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(payload.visualAssets[0].status, "matched");
+    assert.equal(payload.visualAssets[0].matchedBy, "name");
+    assert.equal(
+      payload.scenario.cards[0].imagePath,
+      join(directory, "Alpha.svg").replaceAll("\\", "/"),
+    );
+  } finally {
+    await close(server);
+    await rm(directory, { recursive: true, force: true });
   }
 });
 
@@ -630,6 +674,23 @@ test("listFaceResources returns supported image resources", async () => {
         key: "Beta.png",
         path: join(directory, "Beta.png").replaceAll("\\", "/"),
         format: "png",
+      },
+    ]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("listFaceImageResources maps face summaries to matcher resources", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-face-images-"));
+
+  try {
+    await writeFile(join(directory, "Alpha.svg"), "<svg></svg>");
+
+    assert.deepEqual(await listFaceImageResources(directory), [
+      {
+        key: "Alpha.svg",
+        path: join(directory, "Alpha.svg").replaceAll("\\", "/"),
       },
     ]);
   } finally {

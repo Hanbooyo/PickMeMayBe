@@ -261,6 +261,17 @@ export async function listFaceResources(
     .sort((left, right) => left.fileName.localeCompare(right.fileName));
 }
 
+export async function listFaceImageResources(
+  faceResourceDirectory = "resources/faces",
+): Promise<ImageResource[]> {
+  const resources = await listFaceResources(faceResourceDirectory);
+
+  return resources.map((resource) => ({
+    key: resource.key,
+    path: join(faceResourceDirectory, resource.fileName).replaceAll("\\", "/"),
+  }));
+}
+
 export function createApiServer(options: ApiServerOptions = {}) {
   const renderDirectory = options.renderDirectory ?? "data/renders";
   const renderInputDirectory = options.renderInputDirectory ?? "data/render-inputs";
@@ -307,7 +318,16 @@ export function createApiServer(options: ApiServerOptions = {}) {
 
       if (request.method === "POST" && request.url === "/api/manual-preview") {
         const body = (await readJsonBody(request)) as ManualPreviewRequest;
-        sendJson(response, 200, createManualPreview(body));
+        const resources = body.resources ?? (await listFaceImageResources(faceResourceDirectory));
+
+        sendJson(
+          response,
+          200,
+          createManualPreview({
+            ...body,
+            resources,
+          }),
+        );
         return;
       }
 
