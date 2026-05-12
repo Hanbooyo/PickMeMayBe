@@ -207,6 +207,12 @@ npm.cmd test
 npm.cmd run render:sample
 ```
 
+데모 smoke check:
+
+```powershell
+npm.cmd run demo:smoke
+```
+
 기본 출력:
 
 ```text
@@ -225,6 +231,9 @@ data/renders/election-broadcast-sample.mp4
 권장 시연 순서:
 
 ```powershell
+# optional preflight
+npm.cmd run demo:smoke
+
 # terminal 1
 npm.cmd run demo:api
 

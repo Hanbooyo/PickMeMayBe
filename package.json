@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.json",
     "demo:api": "tsc -p tsconfig.json && npm.cmd --workspace @pick-me-maybe/api run start",
     "demo:preview": "tsc -p tsconfig.json && node scripts/create-preview-report.mjs",
+    "demo:smoke": "tsc -p tsconfig.json && node scripts/demo-smoke.mjs",
     "demo:web": "tsc -p tsconfig.json && node scripts/serve-web.mjs",
     "render:sample": "tsc -p tsconfig.json && npm.cmd --workspace @pick-me-maybe/renderer run render:sample",
     "test": "tsc -p tsconfig.json && node --test tests/*.test.mjs",
