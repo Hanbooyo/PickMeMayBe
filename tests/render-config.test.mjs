@@ -17,3 +17,18 @@ test("createSampleRenderOutputConfig accepts custom output path", () => {
     "data/renders/custom.mp4",
   );
 });
+
+test("createSampleRenderOutputConfig accepts input props path", () => {
+  assert.deepEqual(
+    createSampleRenderOutputConfig(
+      "data/renders/custom.mp4",
+      "data/render-inputs/latest.json",
+    ),
+    {
+      compositionId: "ElectionBroadcastReveal",
+      entryPoint: "apps/renderer/src/remotionEntry.tsx",
+      outputPath: "data/renders/custom.mp4",
+      inputPropsPath: "data/render-inputs/latest.json",
+    },
+  );
+});
