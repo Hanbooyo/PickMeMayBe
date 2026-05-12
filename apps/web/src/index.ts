@@ -47,6 +47,7 @@ const errorMessage = getElement("error-message");
 const apiStatus = getElement("api-status");
 const history = getElement("history");
 const resourceSummary = getElement("resource-summary");
+const assetMatchSummary = getElement("asset-match-summary");
 const assetMatchList = getElement("asset-match-list");
 const renderList = getElement("render-list");
 const renderJobList = getElement("render-job-list");
@@ -552,9 +553,18 @@ function renderAssetMatches(
   );
 
   if (visualAssets.length === 0) {
+    assetMatchSummary.innerHTML = "";
     assetMatchList.innerHTML = `<div class="empty-state">No asset match data yet.</div>`;
     return;
   }
+
+  const matchedCount = visualAssets.filter((asset) => asset.status === "matched").length;
+  const anonymousCount = visualAssets.length - matchedCount;
+  assetMatchSummary.innerHTML = `
+    <strong>${matchedCount}</strong> matched
+    <span class="render-meta">·</span>
+    <strong>${anonymousCount}</strong> anonymous fallback
+  `;
 
   assetMatchList.innerHTML = visualAssets
     .map((asset) => {

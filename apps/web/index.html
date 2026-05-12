@@ -212,6 +212,15 @@
         gap: 8px;
       }
 
+      .asset-match-summary {
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(15, 23, 42, 0.58);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+
       .asset-match-item {
         display: grid;
         grid-template-columns: 1fr auto;
@@ -598,6 +607,7 @@
           </section>
           <section class="asset-match-panel">
             <div class="history-title">Asset matches</div>
+            <div class="asset-match-summary" id="asset-match-summary"></div>
             <div class="asset-match-list" id="asset-match-list"></div>
           </section>
           <div class="history" id="history"></div>
