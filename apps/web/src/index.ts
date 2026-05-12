@@ -21,6 +21,7 @@ const renderLatestJobsEndpoint = "http://localhost:4317/api/render-latest-jobs";
 const renderJobsEndpoint = "http://localhost:4317/api/render-jobs";
 const renderJobPollIntervalMs = 1200;
 const renderJobMaxPolls = 150;
+const minimumSuspenseMs = 1800;
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -157,6 +158,10 @@ async function runPreview(): Promise<void> {
       return;
     }
 
+    const presentationMode = readPresentationMode();
+    const suspenseStartedAt = Date.now();
+    renderSuspensePreview(presentationMode, normalized.participants.length);
+
     const response = await fetch(manualPreviewEndpoint, {
       method: "POST",
       headers: {
@@ -171,7 +176,7 @@ async function runPreview(): Promise<void> {
         })),
         title: "PickMeMaybe LIVE",
         winnerCount,
-        presentationMode: readPresentationMode(),
+        presentationMode,
         allowPreviousWinners: allowPreviousWinnersInput.checked,
         previousWinnerIds: resultHistory.flatMap((entry) => entry.winnerIds),
       }),
@@ -183,6 +188,7 @@ async function runPreview(): Promise<void> {
       throw new Error(formatApiError(payload));
     }
 
+    await delay(Math.max(0, minimumSuspenseMs - (Date.now() - suspenseStartedAt)));
     renderPreview(payload.scenario);
     renderAssetMatches(payload.scenario.cards, payload.visualAssets);
     resultHistory = payload.history;
@@ -704,6 +710,53 @@ function renderPreview(
       </aside>
     </div>
     <footer>속보: ${modeLabel} 추첨 연출 데이터 생성 완료</footer>
+  `;
+}
+
+function renderSuspensePreview(
+  presentationMode: BroadcastPresentationMode,
+  participantCount: number,
+): void {
+  const isRaceMode = presentationMode === "running-race";
+  const visual = isRaceMode
+    ? `
+      <div class="race-suspense" aria-hidden="true">
+        ${Array.from({ length: Math.min(3, Math.max(1, participantCount)) })
+          .map(
+            () => `
+              <div class="race-suspense-lane">
+                <span class="race-suspense-runner"></span>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    `
+    : `
+      <div class="dice-stage" aria-hidden="true">
+        <div class="dice">?</div>
+        <div class="dice">?</div>
+        <div class="dice">?</div>
+      </div>
+    `;
+  const title = isRaceMode ? "레이스 진행 중" : "추첨 주사위 굴리는 중";
+  const subtitle = isRaceMode
+    ? `${participantCount}명의 주자가 결승선을 향해 달리고 있습니다.`
+    : `${participantCount}명의 참가자 중 당첨자를 집계하고 있습니다.`;
+
+  preview.innerHTML = `
+    <header>
+      <h2>PickMeMaybe LIVE</h2>
+      <div class="badge">${isRaceMode ? "RUNNING RACE" : "SUSPENSE"}</div>
+    </header>
+    <div class="suspense-stage">
+      ${visual}
+      <div>
+        <div class="suspense-title">${escapeHtml(title)}</div>
+        <div class="suspense-subtitle">${escapeHtml(subtitle)}</div>
+      </div>
+    </div>
+    <footer>속보: 공정 추첨 결과 집계 중</footer>
   `;
 }
 
