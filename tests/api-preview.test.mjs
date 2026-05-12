@@ -10,6 +10,7 @@ import {
   createApiServer,
   createManualPreview,
   getPreviewHistory,
+  listFaceResources,
   listRenderJobs,
   listRenderArtifacts,
   parseRosterFile,
@@ -189,6 +190,11 @@ test("createApiServer responds to manual preview HTTP requests", async () => {
     const rendersPayload = await rendersResponse.json();
     assert.equal(rendersResponse.status, 200);
     assert.equal(Array.isArray(rendersPayload.renders), true);
+
+    const resourcesResponse = await fetch(`http://127.0.0.1:${port}/api/resources/faces`);
+    const resourcesPayload = await resourcesResponse.json();
+    assert.equal(resourcesResponse.status, 200);
+    assert.equal(Array.isArray(resourcesPayload.resources), true);
   } finally {
     await close(server);
   }
@@ -597,6 +603,33 @@ test("listRenderArtifacts returns validated mp4 render summaries", async () => {
         path: join(directory, "broadcast.mp4"),
         sizeBytes: 2060,
         format: "mp4",
+      },
+    ]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("listFaceResources returns supported image resources", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-faces-"));
+
+  try {
+    await writeFile(join(directory, "Alpha.svg"), "<svg></svg>");
+    await writeFile(join(directory, "Beta.png"), "");
+    await writeFile(join(directory, "notes.txt"), "ignored");
+
+    assert.deepEqual(await listFaceResources(directory), [
+      {
+        fileName: "Alpha.svg",
+        key: "Alpha.svg",
+        path: join(directory, "Alpha.svg").replaceAll("\\", "/"),
+        format: "svg",
+      },
+      {
+        fileName: "Beta.png",
+        key: "Beta.png",
+        path: join(directory, "Beta.png").replaceAll("\\", "/"),
+        format: "png",
       },
     ]);
   } finally {

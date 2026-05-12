@@ -52,9 +52,17 @@ export type RenderArtifactSummary = {
   format: "mp4";
 };
 
+export type FaceResourceSummary = {
+  fileName: string;
+  key: string;
+  path: string;
+  format: "svg" | "png" | "jpg" | "jpeg" | "webp";
+};
+
 export type ApiServerOptions = {
   renderDirectory?: string;
   renderInputDirectory?: string;
+  faceResourceDirectory?: string;
   renderSample?: RenderSampleRunner;
   renderLatest?: RenderLatestRunner;
 };
@@ -232,9 +240,31 @@ export async function listRenderArtifacts(
   return artifacts.sort((left, right) => left.fileName.localeCompare(right.fileName));
 }
 
+export async function listFaceResources(
+  faceResourceDirectory = "resources/faces",
+): Promise<FaceResourceSummary[]> {
+  const directory = resolve(faceResourceDirectory);
+  const entries = await readdir(directory, {
+    withFileTypes: true,
+  }).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") {
+      return [];
+    }
+
+    throw error;
+  });
+
+  return entries
+    .filter((entry) => entry.isFile())
+    .map((entry) => createFaceResourceSummary(directory, entry.name))
+    .filter((entry): entry is FaceResourceSummary => Boolean(entry))
+    .sort((left, right) => left.fileName.localeCompare(right.fileName));
+}
+
 export function createApiServer(options: ApiServerOptions = {}) {
   const renderDirectory = options.renderDirectory ?? "data/renders";
   const renderInputDirectory = options.renderInputDirectory ?? "data/render-inputs";
+  const faceResourceDirectory = options.faceResourceDirectory ?? "resources/faces";
   const renderSample = options.renderSample ?? runSampleRenderCommand;
   const renderLatest = options.renderLatest ?? runLatestRenderCommand;
 
@@ -252,6 +282,13 @@ export function createApiServer(options: ApiServerOptions = {}) {
 
       if (request.method === "GET" && request.url === "/api/history") {
         sendJson(response, 200, { history: getPreviewHistory() });
+        return;
+      }
+
+      if (request.method === "GET" && request.url === "/api/resources/faces") {
+        sendJson(response, 200, {
+          resources: await listFaceResources(faceResourceDirectory),
+        });
         return;
       }
 
@@ -419,6 +456,30 @@ function updateRenderJob(
     ...patch,
     updatedAt: new Date().toISOString(),
   });
+}
+
+function createFaceResourceSummary(
+  directory: string,
+  fileName: string,
+): FaceResourceSummary | undefined {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+
+  if (
+    extension !== "svg" &&
+    extension !== "png" &&
+    extension !== "jpg" &&
+    extension !== "jpeg" &&
+    extension !== "webp"
+  ) {
+    return undefined;
+  }
+
+  return {
+    fileName,
+    key: fileName,
+    path: join(directory, fileName).replaceAll("\\", "/"),
+    format: extension,
+  };
 }
 
 async function runSampleRenderCommand(): Promise<RenderSampleResult> {
