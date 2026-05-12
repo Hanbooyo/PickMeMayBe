@@ -16,7 +16,7 @@ const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
 const historyEndpoint = "http://localhost:4317/api/history";
 const parseRosterFileEndpoint = "http://localhost:4317/api/parse-roster-file";
 const rendersEndpoint = "http://localhost:4317/api/renders";
-const renderSampleEndpoint = "http://localhost:4317/api/render-sample";
+const renderLatestEndpoint = "http://localhost:4317/api/render-latest";
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -46,7 +46,7 @@ const apiStatus = getElement("api-status");
 const history = getElement("history");
 const renderList = getElement("render-list");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
-const renderSampleButton = getElement("render-sample") as HTMLButtonElement;
+const renderLatestButton = getElement("render-latest") as HTMLButtonElement;
 const refreshRendersButton = getElement("refresh-renders") as HTMLButtonElement;
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
 const pasteRosterInput = getElement("paste-roster") as HTMLTextAreaElement;
@@ -86,8 +86,8 @@ refreshRendersButton.addEventListener("click", async () => {
   await loadRenderArtifacts();
 });
 
-renderSampleButton.addEventListener("click", async () => {
-  await renderSampleVideo();
+renderLatestButton.addEventListener("click", async () => {
+  await renderLatestVideo();
 });
 
 render();
@@ -342,18 +342,18 @@ async function loadRenderArtifacts(): Promise<void> {
   }
 }
 
-async function renderSampleVideo(): Promise<void> {
+async function renderLatestVideo(): Promise<void> {
   setRenderBusy(true);
-  renderList.innerHTML = `<div class="empty-state">Rendering sample MP4. This can take a little while.</div>`;
+  renderList.innerHTML = `<div class="empty-state">Rendering latest raffle MP4. This can take a little while.</div>`;
 
   try {
-    const response = await fetch(renderSampleEndpoint, {
+    const response = await fetch(renderLatestEndpoint, {
       method: "POST",
     });
 
     if (!response.ok) {
       const payload = (await response.json()) as { error?: string };
-      throw new Error(payload.error ?? "Sample render request failed.");
+      throw new Error(payload.error ?? "Latest render request failed.");
     }
 
     const payload = (await response.json()) as {
@@ -363,8 +363,8 @@ async function renderSampleVideo(): Promise<void> {
   } catch (error) {
     renderList.innerHTML = `<div class="empty-state">${escapeHtml(
       error instanceof Error
-        ? `${error.message} Check that the API server can run npm.cmd run render:sample.`
-        : "Sample render failed.",
+        ? `${error.message} Run a raffle preview first and check that the API server can run npm.cmd run render:sample.`
+        : "Latest render failed.",
     )}</div>`;
   } finally {
     setRenderBusy(false);
@@ -577,9 +577,9 @@ function setBusy(isBusy: boolean): void {
 }
 
 function setRenderBusy(isBusy: boolean): void {
-  renderSampleButton.disabled = isBusy;
+  renderLatestButton.disabled = isBusy;
   refreshRendersButton.disabled = isBusy;
-  renderSampleButton.textContent = isBusy ? "Rendering..." : "Render sample";
+  renderLatestButton.textContent = isBusy ? "Rendering..." : "Render latest";
 }
 
 function setApiStatus(status: "checking" | "ready" | "error", message: string): void {
