@@ -16,7 +16,8 @@ const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
 const historyEndpoint = "http://localhost:4317/api/history";
 const parseRosterFileEndpoint = "http://localhost:4317/api/parse-roster-file";
 const rendersEndpoint = "http://localhost:4317/api/renders";
-const renderLatestEndpoint = "http://localhost:4317/api/render-latest";
+const renderLatestJobsEndpoint = "http://localhost:4317/api/render-latest-jobs";
+const renderJobsEndpoint = "http://localhost:4317/api/render-jobs";
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -344,22 +345,28 @@ async function loadRenderArtifacts(): Promise<void> {
 
 async function renderLatestVideo(): Promise<void> {
   setRenderBusy(true);
-  renderList.innerHTML = `<div class="empty-state">Rendering latest raffle MP4. This can take a little while.</div>`;
+  renderList.innerHTML = `<div class="empty-state">Queueing latest raffle render job.</div>`;
 
   try {
-    const response = await fetch(renderLatestEndpoint, {
+    const response = await fetch(renderLatestJobsEndpoint, {
       method: "POST",
     });
 
     if (!response.ok) {
       const payload = (await response.json()) as { error?: string };
-      throw new Error(payload.error ?? "Latest render request failed.");
+      throw new Error(payload.error ?? "Latest render job request failed.");
     }
 
     const payload = (await response.json()) as {
-      renders: RenderArtifactSummary[];
+      job: RenderJob;
     };
-    renderArtifacts(payload.renders);
+    const completed = await waitForRenderJob(payload.job.id);
+
+    if (completed.status === "failed") {
+      throw new Error(completed.error ?? "Latest render job failed.");
+    }
+
+    renderArtifacts(completed.renders ?? []);
   } catch (error) {
     renderList.innerHTML = `<div class="empty-state">${escapeHtml(
       error instanceof Error
@@ -384,6 +391,36 @@ type RenderArtifactSummary = {
   sizeBytes: number;
   format: "mp4";
 };
+
+type RenderJob = {
+  id: string;
+  status: "queued" | "running" | "done" | "failed";
+  error?: string;
+  renders?: RenderArtifactSummary[];
+};
+
+async function waitForRenderJob(jobId: string): Promise<RenderJob> {
+  for (;;) {
+    const response = await fetch(`${renderJobsEndpoint}/${encodeURIComponent(jobId)}`);
+
+    if (!response.ok) {
+      const payload = (await response.json()) as { error?: string };
+      throw new Error(payload.error ?? "Render job status request failed.");
+    }
+
+    const payload = (await response.json()) as {
+      job: RenderJob;
+    };
+
+    renderList.innerHTML = `<div class="empty-state">Render job ${escapeHtml(payload.job.status)}...</div>`;
+
+    if (payload.job.status === "done" || payload.job.status === "failed") {
+      return payload.job;
+    }
+
+    await delay(1200);
+  }
+}
 
 function formatApiError(payload: ManualPreviewApiResponse): string {
   switch (payload.code) {
@@ -458,6 +495,10 @@ function formatBytes(sizeBytes: number): string {
   }
 
   return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function renderPreview(
