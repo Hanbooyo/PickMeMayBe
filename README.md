@@ -1,31 +1,29 @@
 # PickMeMaybe
 
-PickMeMaybe는 AI 연출형 추첨 콘텐츠 생성 플랫폼입니다.
+PickMeMaybe는 AI 연출형 추첨 콘텐츠 생성기를 목표로 하는 TypeScript 기반 MVP입니다.
 
-단순히 당첨자를 뽑는 도구가 아니라, 공정하게 확정된 추첨 결과를 방송형 그래픽과 영상 연출로 표현하는 것을 목표로 합니다. MVP는 Excel 명단 또는 수기 입력 참가자 목록과 사전에 준비된 참가자 이미지 리소스를 사용해 개표방송 스타일의 가로형 winner reveal 영상을 생성하는 방향으로 시작합니다.
-
-## Project Overview
-
-핵심 목표는 다음과 같습니다.
-
-- 참가자 명단을 Excel 업로드 또는 수기 입력으로 등록합니다.
-- 참가자 이름을 기준으로 보유 이미지 리소스를 매칭합니다.
-- 동명이인이 있으면 이메일을 기준으로 보조 매칭합니다.
-- 이미지가 없는 참가자는 anonymous placeholder를 사용합니다.
-- crypto 기반 추첨 로직으로 실제 당첨자를 먼저 확정합니다.
-- 확정된 결과를 election broadcast 스타일의 영상 연출로 표현합니다.
-- MVP 출력은 16:9 가로형 영상을 우선합니다.
-
-중요 원칙:
+단순히 당첨자를 뽑는 프로그램이 아니라, 공정한 추첨 결과를 선거 개표방송 스타일의 화면과 MP4 영상으로 표현하는 흐름을 우선 구현합니다. 초기 MVP는 생성형 영상 모델에 의존하지 않고, 참가자 명단, 얼굴 리소스, 애니메이션 템플릿, Remotion 렌더링을 조합하는 방식입니다.
 
 ```text
 Fair raffle first, dramatic presentation second.
-추첨은 공정하게 먼저 확정하고, 연출은 그 결과를 표현합니다.
+추첨은 공정하게 먼저 확정하고, 연출은 그 결과를 극적으로 보여줍니다.
 ```
+
+## Project Overview
+
+핵심 목표:
+
+- 참가자를 수동 입력 또는 Excel 파일로 등록합니다.
+- 참가자 이름을 우선 기준으로 얼굴 이미지 리소스를 매칭합니다.
+- 동명이인은 이메일을 보조 기준으로 사용합니다.
+- 이미지가 없는 참가자는 `anonymous.svg`를 사용합니다.
+- crypto 기반 랜덤으로 실제 당첨자를 공정하게 선정합니다.
+- 추첨 결과를 election broadcast 스타일 preview와 MP4 렌더로 출력합니다.
+- 생성된 MP4 목록을 웹에서 확인하고 다운로드합니다.
 
 ## MVP Scope
 
-MVP에서 우선 구현할 범위입니다.
+현재 MVP 범위:
 
 - Manual participant input
 - Excel roster import
@@ -33,88 +31,47 @@ MVP에서 우선 구현할 범위입니다.
 - Face/resource image matching
 - Anonymous image fallback
 - Crypto-based raffle engine
+- Previous winner exclusion option
 - Presentation scenario generation
 - Election-broadcast-inspired reveal template
-- Remotion-based rendering
-- Render history structure
-- Test harness for raffle, participant input, asset matching, and rendering props
+- Remotion-based MP4 rendering
+- Render artifact validation
+- Render job status polling
+- Render output list and download
+- API/web/test harness
 
-단체사진 업로드, 얼굴 감지, segmentation, TTS, AI 사회자, 실시간 행사 모드는 후속 확장 기능으로 둡니다.
+아직 MVP 밖의 확장 기능:
 
-## Participant Input
-
-참가자 입력 경로는 두 가지를 지원합니다.
-
-```text
-1. Manual input
-2. Excel upload
-```
-
-MVP 구현 우선순위는 수기 입력입니다. Excel 업로드는 대량 입력 편의 기능으로 후속 단계에서 붙입니다.
-
-Excel 업로드:
-
-- 다수 참가자를 한 번에 등록합니다.
-- 예상 컬럼은 `이름`, `이메일`, `부서`, `응모자산`, `입력시간`입니다.
-- 파일 파싱 후 내부 `Participant` 모델로 정규화합니다.
-
-수기 입력:
-
-- 사용자가 화면에서 참가자를 직접 추가합니다.
-- 기본 행을 제공하고, `+ 참가자 추가` 버튼으로 인원을 늘릴 수 있어야 합니다.
-- 각 행의 삭제 버튼 또는 `- 마지막 행 제거` 기능으로 인원을 줄일 수 있어야 합니다.
-- 필수값은 `이름`입니다.
-- 선택값은 `이메일`, `부서`, `응모자산`입니다.
-- 수기 입력의 `입력시간`은 저장 시점으로 자동 생성합니다.
-
-수기 입력 UI 방향:
-
-```text
-[ Excel 업로드 ] [ 수기 입력 ]
-
-No | 이름 | 이메일 | 부서 | 응모자산 | 삭제
-1  |      |        |      |          | 삭제
-2  |      |        |      |          | 삭제
-
-[+ 참가자 추가] [- 마지막 행 제거] [다음 단계]
-```
-
-Excel과 수기 입력은 서로 다른 입력 경로이지만, 이후 단계에서는 같은 `Participant` 모델로 처리합니다.
-
-```text
-Participant Input
-  -> Participant normalization
-  -> Asset matching
-  -> Raffle execution
-  -> Presentation scenario
-  -> Video rendering
-```
+- 단체사진 업로드
+- 얼굴 감지와 segmentation
+- 사람별 motion compositing
+- TTS/AI 사회자
+- 자동 자막
+- QR 참가
+- 실시간 행사 모드
+- 가위바위보, 사다리, 경마, 달리기, 주사위 등 추가 연출 모드
 
 ## Tech Stack
 
-현재 계획 중인 기술스택입니다.
-
-| Area | Primary Choice | Notes |
+| Area | Current Choice | Notes |
 | --- | --- | --- |
-| Language | TypeScript | shared type, frontend, backend, renderer를 같은 언어로 관리 |
-| Package Manager | npm workspaces | 초기 구조 단순화 |
-| Frontend | React + Vite 예정 | 참가자 관리, 명단 업로드, 수기 입력, 추첨 실행, 렌더링 상태 UI |
-| Backend | Node.js API 예정 | 파일 처리, 추첨 실행, render job 관리 |
-| Renderer | Remotion 예정 | React 기반 영상 composition과 MP4 렌더링 |
-| Database | SQLite 예정 | MVP 로컬/단일 인스턴스 저장에 적합 |
-| Raffle Logic | Node crypto 예정 | 실제 추첨 공정성 확보 |
-| Participant Input | Excel parser + manual form 예정 | Excel 업로드와 수기 입력을 같은 모델로 정규화 |
-| Asset Matching | Local resource matching | 이름 우선, 동명이인은 이메일 대조 |
-| Testing | Vitest 예정 | core logic, parser, matcher, render props 검증 |
-| E2E | Playwright 예정 | 웹 UI와 핵심 사용자 흐름 검증 |
+| Language | TypeScript | API, web, renderer, shared packages 공통 사용 |
+| Package Manager | npm workspaces | `apps/*`, `packages/*` monorepo |
+| Frontend | Static web + TypeScript | MVP용 수동 입력, preview, render control UI |
+| Backend | Node.js HTTP server | 외부 framework 없이 endpoint를 작게 구성 |
+| Renderer | Remotion | React 기반 composition과 MP4 렌더링 |
+| Raffle Logic | Node/Web Crypto | 공정 추첨용 crypto random |
+| Roster Import | `xlsx` + manual form | Excel 업로드와 수동 입력 모두 지원 |
+| Storage | Local filesystem | `data/renders`, `data/render-inputs` |
+| Testing | TypeScript build + Node test runner | core logic, API, render validation smoke tests |
 
 ## Workspace Layout
 
 ```text
 apps/
-  web/
-    src/
   api/
+    src/
+  web/
     src/
   renderer/
     src/
@@ -132,23 +89,40 @@ packages/
     src/
   render-types/
     src/
+  render-validation/
+    src/
+
+resources/
+  faces/
+
+tests/
 ```
 
-역할 분리:
+주요 역할:
 
-- `apps/web`: 사용자 화면
-- `apps/api`: API 서버와 job orchestration
-- `apps/renderer`: Remotion composition과 영상 렌더링
-- `packages/shared`: 공통 타입과 schema
+- `apps/api`: preview 생성, Excel parsing, render job orchestration, MP4 목록/다운로드 API
+- `apps/web`: 참가자 입력, 추첨 실행, preview, render job polling, MP4 다운로드 UI
+- `apps/renderer`: Remotion composition, sample/latest render execution
 - `packages/raffle-engine`: 공정 추첨 로직
-- `packages/roster-import`: Excel 명단 파싱, 수기 입력 정규화, 참가자 입력 검증
-- `packages/asset-matcher`: 참가자 이미지 리소스 매칭
-- `packages/presentation-engine`: 연출 시나리오와 timeline 생성
-- `packages/render-types`: renderer 입력/출력 타입
+- `packages/roster-import`: Excel/수동 입력 정규화
+- `packages/asset-matcher`: 이름/이메일 기반 이미지 매칭
+- `packages/presentation-engine`: 개표방송 스타일 scenario/timeline 생성
+- `packages/render-types`: renderer input/output 타입
+- `packages/render-validation`: MP4 산출물 검증
 
-## Roster Rules
+## Participant Input
 
-MVP 기준 Excel 컬럼은 다음을 예상합니다.
+지원 입력 경로:
+
+```text
+1. Manual input
+2. Excel upload
+3. Excel paste
+```
+
+수동 입력이 MVP 우선 경로입니다. 웹 화면에서 참가자를 추가/삭제하고, 이름/이메일/부서/응모자산을 직접 수정할 수 있습니다.
+
+Excel 예상 컬럼:
 
 ```text
 이름
@@ -158,40 +132,33 @@ MVP 기준 Excel 컬럼은 다음을 예상합니다.
 입력시간
 ```
 
-이미지 매칭 우선순위:
+매칭 우선순위:
 
 ```text
 1. 이름 기준 매칭
-2. 동명이인 발생 시 이메일 기준 매칭
-3. 필요 시 이름 + 부서 기준 보조 매칭
+2. 동명이인 발생 시 이메일 기준 보조 매칭
+3. 필요 시 이름 + 부서 기준 확장 가능
 4. 매칭 실패 시 anonymous placeholder 사용
 ```
 
-## Presentation Direction
+## Render Flow
 
-첫 번째 연출 모드는 대한민국 개표방송에서 영감을 받은 `Election Broadcast Reveal`입니다.
+현재 렌더 흐름:
 
-예상 화면 요소:
+```text
+Manual/Excel input
+-> normalize participants
+-> match visual assets
+-> draw winners with crypto random
+-> create election broadcast scenario
+-> create render props
+-> enqueue render job
+-> Remotion MP4 render
+-> validate MP4 artifact
+-> list/download render output
+```
 
-- 방송형 상단 타이틀
-- 후보자 카드
-- 실시간 집계 그래프 느낌의 animated bars
-- 하단 ticker
-- 최종 당첨자 reveal panel
-- spotlight, glow, confetti
-- 16:9 landscape composition
-
-추후 확장 가능한 presentation mode:
-
-- Rock Paper Scissors
-- Ladder Game
-- Horse Race
-- Running Race
-- Dice Roll
-- Roulette
-- Tournament Bracket
-
-각 모드는 실제 추첨 결과를 다시 계산하지 않고, 이미 확정된 `RaffleResult`를 표현하는 역할만 담당합니다.
+웹에서는 `Render latest` 버튼을 누르면 API가 최신 추첨 preview를 기반으로 render job을 생성합니다. 웹은 `GET /api/render-jobs/:id`를 polling해서 `queued`, `running`, `done`, `failed` 상태를 표시하고 완료 후 MP4 목록을 갱신합니다.
 
 ## Development
 
@@ -200,8 +167,6 @@ MVP 기준 Excel 컬럼은 다음을 예상합니다.
 ```powershell
 npm.cmd install
 ```
-
-PowerShell 실행 정책에 따라 `npm`이 차단될 수 있으므로 Windows에서는 `npm.cmd` 사용을 권장합니다.
 
 빌드:
 
@@ -221,69 +186,21 @@ npm.cmd run typecheck
 npm.cmd test
 ```
 
-현재 `test`는 TypeScript 빌드 후 Node test runner로 핵심 로직 테스트를 실행합니다.
-
-Preview report 생성:
-
-```powershell
-npm.cmd run demo:preview
-```
-
-이 명령은 샘플 수기 입력 데이터를 사용해 다음 파이프라인을 실행하고 `reports/preview-report.json`, `reports/preview.html` 파일을 생성합니다.
-
-```text
-roster normalization
--> asset matching
--> fair raffle
--> broadcast scenario
--> renderer preview model
-```
-
-수기 입력 웹 preview:
-
-```powershell
-npm.cmd run demo:web
-```
-
-기본 주소는 `http://localhost:4318/apps/web/index.html`입니다. 추첨 preview를 실행하려면 별도 터미널에서 API 서버도 함께 실행해야 합니다.
-
-Excel 표 붙여넣기:
-
-- Excel에서 `이름`, `이메일`, `부서`, `응모자산`, `입력시간` 열을 복사합니다.
-- 웹 preview의 붙여넣기 영역에 붙여넣습니다.
-- `붙여넣기 명단 적용`을 누르면 수기 입력 행으로 변환됩니다.
-
-Excel 파일 업로드:
-
-- 웹 preview에서 `.xlsx` 또는 `.xls` 파일을 선택합니다.
-- `Excel 파일 적용`을 누르면 API 서버가 첫 번째 sheet를 읽어 참가자 입력 행으로 변환합니다.
-- 이 기능은 `xlsx` 패키지를 사용합니다.
-
-Remotion composition preview:
-
-```powershell
-npm.cmd --workspace @pick-me-maybe/renderer run studio
-```
-
-`ElectionBroadcastReveal` composition은 현재 개표방송형 16:9 화면의 Remotion 뼈대입니다.
-
-샘플 MP4 렌더링:
+샘플 MP4 렌더:
 
 ```powershell
 npm.cmd run render:sample
 ```
 
-기본 출력 경로는 `data/renders/election-broadcast-sample.mp4`입니다. 렌더링은 시간이 걸릴 수 있으며 로컬 Chrome/Remotion 렌더링 환경에 영향을 받습니다.
+기본 출력:
 
-API preview 서버:
-
-```powershell
-npm.cmd run demo:api
+```text
+data/renders/election-broadcast-sample.mp4
 ```
 
-기본 포트는 `4317`이며, `GET /health`, `POST /api/manual-preview`를 제공합니다.
+## Demo
 
-권장 실행 순서:
+권장 시연 순서:
 
 ```powershell
 # terminal 1
@@ -293,56 +210,89 @@ npm.cmd run demo:api
 npm.cmd run demo:web
 ```
 
-샘플 이미지 resource:
+웹 주소:
 
 ```text
-resources/faces/
-  anonymous.svg
-  김민수.svg
-  이서연.svg
-  박지훈.svg
+http://localhost:4318/apps/web/index.html
 ```
 
-웹 preview와 API preview는 이 샘플 resource를 사용합니다. 실제 운영에서는 같은 위치에 참가자 이름 또는 이메일 기준 이미지 파일을 추가하는 방식으로 확장합니다.
+시연 흐름:
+
+1. 웹에서 참가자를 수동 입력하거나 Excel 파일을 업로드합니다.
+2. 당첨 인원과 과거 당첨자 허용 여부를 설정합니다.
+3. `추첨 실행`을 누릅니다.
+4. preview에서 당첨 결과를 확인합니다.
+5. `Render latest`를 누릅니다.
+6. render job 상태가 완료될 때까지 기다립니다.
+7. `Render outputs` 목록에서 생성된 MP4를 확인합니다.
+8. `Download MP4` 링크로 영상을 다운로드합니다.
+
+## API
+
+주요 endpoint:
+
+```text
+GET  /health
+GET  /api/history
+POST /api/manual-preview
+POST /api/parse-roster-file
+GET  /api/renders
+GET  /api/renders/:fileName
+POST /api/render-sample
+POST /api/render-latest
+POST /api/render-latest-jobs
+GET  /api/render-jobs/:jobId
+```
+
+렌더 관련 endpoint:
+
+- `GET /api/renders`: 검증된 MP4 산출물 목록 조회
+- `GET /api/renders/:fileName`: MP4 다운로드
+- `POST /api/render-sample`: 샘플 props 기반 렌더
+- `POST /api/render-latest`: 최신 preview 기반 동기 렌더
+- `POST /api/render-latest-jobs`: 최신 preview 기반 비동기 render job 생성
+- `GET /api/render-jobs/:jobId`: render job 상태 조회
 
 ## Testing Plan
 
-향후 테스트는 다음 범위로 구성합니다.
+현재 테스트 범위:
 
-- `raffle-engine`: 중복 없는 당첨자 선정, 후보자 검증, 예외 처리, 대량 참가자 처리
-- `roster-import`: Excel 컬럼 파싱, 수기 입력 정규화, 누락값 처리, 동명이인 처리
-- `asset-matcher`: 이름 우선 매칭, 이메일 fallback, anonymous fallback
-- `presentation-engine`: timeline 생성, winner reveal frame, scenario consistency
-- `renderer`: render props validation, output metadata validation, snapshot frame validation
-- `web/api`: 핵심 사용자 흐름 smoke test
+- `raffle-engine`: winner count, duplicate participant, previous winner exclusion
+- `roster-import`: Excel table parsing, paste parsing, manual input helpers
+- `asset-matcher`: name/email matching, anonymous fallback
+- `presentation-engine`: scenario consistency, timeline validation
+- `render-types`: render props and video settings
+- `render-validation`: MP4 signature and size validation
+- `api`: manual preview, Excel parsing, render list/download, render job status
+- `web`: static web page smoke test
 
-테스트 하네스 구조 예정:
+현재 검증 명령:
 
-```text
-tests/
-  fixtures/
-  mocks/
-  validators/
-  reports/
-  harness/
+```powershell
+npm.cmd run build
+npm.cmd run typecheck
+npm.cmd test
 ```
 
 ## Current Status
 
-현재는 프로젝트 기본 구조와 공통 설계를 잡는 단계입니다.
+MVP 진행률: 약 90%
 
-완료:
-
-- npm workspace 초기화
-- TypeScript 설정
-- 앱/패키지 폴더 구조 생성
-- MVP 방향 문서화
-- 참가자 입력 경로 설계
-
-다음 추천 티켓:
+완료된 핵심 흐름:
 
 ```text
-shared types/schema 정의
+participant input
+-> fair raffle
+-> preview
+-> latest render job
+-> MP4 artifact validation
+-> web list/download
 ```
 
-이 티켓에서는 `Participant`, `RosterRow`, `VisualAsset`, `RaffleResult`, `PresentationScenario`, `RenderJob` 타입을 먼저 정의합니다.
+다음 우선순위:
+
+1. render job 목록 조회 API와 웹 job history 표시
+2. 실제 참가자 이미지 리소스 관리 UX
+3. Remotion template 시각 품질 개선
+4. 단체사진/개별 얼굴 리소스 기반 compositing pipeline 설계
+5. 추가 추첨 연출 모드 확장
