@@ -57,6 +57,10 @@ const renderJobList = getElement("render-job-list");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
 const renderLatestButton = getElement("render-latest") as HTMLButtonElement;
 const refreshRendersButton = getElement("refresh-renders") as HTMLButtonElement;
+const inputTabButton = getElement("tab-input") as HTMLButtonElement;
+const drawTabButton = getElement("tab-draw") as HTMLButtonElement;
+const inputPanel = getElement("panel-input");
+const drawPanel = getElement("panel-draw");
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
 const presentationModeInput = getElement("presentation-mode") as HTMLSelectElement;
 const pasteRosterInput = getElement("paste-roster") as HTMLTextAreaElement;
@@ -101,6 +105,14 @@ renderLatestButton.addEventListener("click", async () => {
   await renderLatestVideo();
 });
 
+inputTabButton.addEventListener("click", () => {
+  setActiveTab("input");
+});
+
+drawTabButton.addEventListener("click", () => {
+  setActiveTab("draw");
+});
+
 render();
 void checkApiStatus();
 void loadHistory();
@@ -138,6 +150,15 @@ function render(): void {
     );
     table.append(row);
   });
+}
+
+function setActiveTab(tab: "input" | "draw"): void {
+  const isInput = tab === "input";
+
+  inputTabButton.classList.toggle("active", isInput);
+  drawTabButton.classList.toggle("active", !isInput);
+  inputPanel.classList.toggle("active", isInput);
+  drawPanel.classList.toggle("active", !isInput);
 }
 
 async function runPreview(): Promise<void> {
@@ -190,6 +211,7 @@ async function runPreview(): Promise<void> {
 
     await delay(Math.max(0, minimumSuspenseMs - (Date.now() - suspenseStartedAt)));
     renderPreview(payload.scenario);
+    setActiveTab("draw");
     renderAssetMatches(payload.scenario.cards, payload.visualAssets);
     resultHistory = payload.history;
     renderHistory();

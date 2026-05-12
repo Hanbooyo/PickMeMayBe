@@ -18,6 +18,8 @@ test("static web server serves the manual preview page", async () => {
     assert.equal(response.status, 200);
     assert.match(response.headers.get("content-type"), /text\/html/);
     assert.match(body, /PickMeMaybe Manual Preview/);
+    assert.match(body, /입력 관리/);
+    assert.match(body, /추첨 방송/);
     assert.match(body, /Face resources/);
     assert.match(body, /Asset matches/);
     assert.match(body, /Running race/);
