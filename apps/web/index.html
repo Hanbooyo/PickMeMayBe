@@ -527,6 +527,16 @@
         gap: 16px;
       }
 
+      .reveal-accent {
+        min-width: 180px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        background: rgba(202, 240, 248, 0.16);
+        color: #f8fafc;
+        font-size: 18px;
+        font-weight: 900;
+      }
+
       .winner-card {
         width: min(190px, 42%);
         min-width: 148px;
@@ -604,6 +614,96 @@
         animation-delay: 0.24s;
       }
 
+      .rps-stage {
+        display: flex;
+        gap: 16px;
+      }
+
+      .rps-stage span {
+        width: 64px;
+        height: 64px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+        font-size: 34px;
+        animation: rps-pop 0.72s infinite alternate ease-in-out;
+      }
+
+      .rps-stage span:nth-child(2) {
+        animation-delay: 0.14s;
+      }
+
+      .rps-stage span:nth-child(3) {
+        animation-delay: 0.28s;
+      }
+
+      .vote-stage {
+        width: min(84%, 430px);
+        display: grid;
+        gap: 10px;
+      }
+
+      .vote-stage span {
+        height: 18px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #caf0f8, #008ccb);
+        transform-origin: left center;
+        animation: vote-fill 0.95s infinite alternate ease-in-out;
+      }
+
+      .vote-stage span:nth-child(2) {
+        width: 78%;
+        animation-delay: 0.12s;
+      }
+
+      .vote-stage span:nth-child(3) {
+        width: 62%;
+        animation-delay: 0.24s;
+      }
+
+      .vote-stage span:nth-child(4) {
+        width: 88%;
+        animation-delay: 0.36s;
+      }
+
+      .ladder-stage {
+        width: min(82%, 360px);
+        height: 138px;
+        position: relative;
+        border-left: 5px solid rgba(202, 240, 248, 0.88);
+        border-right: 5px solid rgba(202, 240, 248, 0.88);
+      }
+
+      .ladder-stage span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 5px;
+        border-radius: 999px;
+        background: rgba(202, 240, 248, 0.88);
+        animation: ladder-flash 0.8s infinite alternate ease-in-out;
+      }
+
+      .ladder-stage span:nth-child(1) {
+        top: 20px;
+      }
+
+      .ladder-stage span:nth-child(2) {
+        top: 52px;
+        animation-delay: 0.14s;
+      }
+
+      .ladder-stage span:nth-child(3) {
+        top: 84px;
+        animation-delay: 0.28s;
+      }
+
+      .ladder-stage span:nth-child(4) {
+        top: 116px;
+        animation-delay: 0.42s;
+      }
+
       .race-suspense {
         width: min(92%, 520px);
         display: grid;
@@ -656,6 +756,35 @@
         }
         100% {
           left: 18%;
+        }
+      }
+
+      @keyframes rps-pop {
+        from {
+          transform: translateY(0) scale(0.92);
+        }
+        to {
+          transform: translateY(-10px) scale(1.08);
+        }
+      }
+
+      @keyframes vote-fill {
+        from {
+          transform: scaleX(0.42);
+        }
+        to {
+          transform: scaleX(1);
+        }
+      }
+
+      @keyframes ladder-flash {
+        from {
+          opacity: 0.45;
+          transform: translateX(-8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(8px);
         }
       }
 

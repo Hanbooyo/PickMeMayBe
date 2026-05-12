@@ -727,10 +727,12 @@ function renderPreview(
     winnerIdSet.has(card.participantId),
   );
   const modeLabel = formatPresentationMode(scenario.presentationMode ?? "dice-roll");
+  const revealMode = scenario.presentationMode ?? "dice-roll";
 
   preview.innerHTML = `
-    <div class="winner-only-stage">
+    <div class="winner-only-stage reveal-${escapeHtml(revealMode)}">
       <div class="mode-chip">${escapeHtml(modeLabel)}</div>
+      ${createRevealAccent(revealMode)}
       <div class="winner-label">당첨 인원 ${winnerCards.length}명</div>
       <div class="winner-grid">
         ${winnerCards.map((card) => createWinnerMarkup(card)).join("")}
@@ -745,27 +747,7 @@ function renderSuspensePreview(
 ): void {
   const isRaceMode = presentationMode === "running-race";
   const modeLabel = formatPresentationMode(presentationMode);
-  const visual = isRaceMode
-    ? `
-      <div class="race-suspense" aria-hidden="true">
-        ${Array.from({ length: Math.min(3, Math.max(1, participantCount)) })
-          .map(
-            () => `
-              <div class="race-suspense-lane">
-                <span class="race-suspense-runner"></span>
-              </div>
-            `,
-          )
-          .join("")}
-      </div>
-    `
-    : `
-      <div class="dice-stage" aria-hidden="true">
-        <div class="dice">?</div>
-        <div class="dice">?</div>
-        <div class="dice">?</div>
-      </div>
-    `;
+  const visual = createSuspenseVisual(presentationMode, participantCount);
   const title = createSuspenseTitle(presentationMode);
   const subtitle = `${participantCount}명의 참가자 중 당첨자를 집계하고 있습니다.`;
 
@@ -779,6 +761,79 @@ function renderSuspensePreview(
       </div>
     </div>
   `;
+}
+
+function createSuspenseVisual(
+  presentationMode: BroadcastPresentationMode,
+  participantCount: number,
+): string {
+  switch (presentationMode) {
+    case "running-race":
+      return `
+        <div class="race-suspense" aria-hidden="true">
+          ${Array.from({ length: Math.min(3, Math.max(1, participantCount)) })
+            .map(
+              () => `
+                <div class="race-suspense-lane">
+                  <span class="race-suspense-runner"></span>
+                </div>
+              `,
+            )
+            .join("")}
+        </div>
+      `;
+    case "rock-paper-scissors":
+      return `
+        <div class="rps-stage" aria-hidden="true">
+          <span>✊</span>
+          <span>✌</span>
+          <span>✋</span>
+        </div>
+      `;
+    case "vote-count":
+      return `
+        <div class="vote-stage" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      `;
+    case "ladder-game":
+      return `
+        <div class="ladder-stage" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      `;
+    case "random":
+    case "dice-roll":
+      return `
+        <div class="dice-stage" aria-hidden="true">
+          <div class="dice">?</div>
+          <div class="dice">?</div>
+          <div class="dice">?</div>
+        </div>
+      `;
+  }
+}
+
+function createRevealAccent(mode: BroadcastPresentationMode): string {
+  switch (mode) {
+    case "rock-paper-scissors":
+      return `<div class="reveal-accent">✊ ✌ ✋</div>`;
+    case "vote-count":
+      return `<div class="reveal-accent">득표 집계 완료</div>`;
+    case "running-race":
+      return `<div class="reveal-accent">결승선 통과</div>`;
+    case "ladder-game":
+      return `<div class="reveal-accent">사다리 도착</div>`;
+    case "random":
+    case "dice-roll":
+      return `<div class="reveal-accent">주사위 결과 확정</div>`;
+  }
 }
 
 function createWinnerMarkup(card: {
