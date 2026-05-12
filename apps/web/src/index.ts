@@ -57,6 +57,7 @@ const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
 const renderLatestButton = getElement("render-latest") as HTMLButtonElement;
 const refreshRendersButton = getElement("refresh-renders") as HTMLButtonElement;
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
+const presentationModeInput = getElement("presentation-mode") as HTMLSelectElement;
 const pasteRosterInput = getElement("paste-roster") as HTMLTextAreaElement;
 const rosterFileInput = getElement("roster-file") as HTMLInputElement;
 const allowPreviousWinnersInput = getElement(
@@ -170,6 +171,7 @@ async function runPreview(): Promise<void> {
         })),
         title: "PickMeMaybe LIVE",
         winnerCount,
+        presentationMode: readPresentationMode(),
         allowPreviousWinners: allowPreviousWinnersInput.checked,
         previousWinnerIds: resultHistory.flatMap((entry) => entry.winnerIds),
       }),
@@ -181,7 +183,7 @@ async function runPreview(): Promise<void> {
       throw new Error(formatApiError(payload));
     }
 
-    renderPreview(payload.scenario.cards, payload.scenario.winnerIds);
+    renderPreview(payload.scenario);
     renderAssetMatches(payload.scenario.cards, payload.visualAssets);
     resultHistory = payload.history;
     renderHistory();
@@ -299,6 +301,16 @@ function readWinnerCount(): number {
   }
 
   return winnerCount;
+}
+
+type BroadcastPresentationMode = "standard" | "running-race";
+
+function readPresentationMode(): BroadcastPresentationMode {
+  if (presentationModeInput.value === "running-race") {
+    return "running-race";
+  }
+
+  return "standard";
 }
 
 async function checkApiStatus(): Promise<void> {
@@ -654,37 +666,44 @@ function delay(milliseconds: number): Promise<void> {
 }
 
 function renderPreview(
-  cards: Array<{
+  scenario: {
+    presentationMode?: BroadcastPresentationMode;
+    cards: Array<{
     participantId: string;
     name: string;
     department?: string;
     appliedAsset?: string;
     imagePath: string;
     isWinner: boolean;
-  }>,
-  winnerIds: string[],
+    }>;
+    winnerIds: string[];
+  },
 ): void {
-  const winnerIdSet = new Set(winnerIds);
-  const winnerNames = cards
+  const winnerIdSet = new Set(scenario.winnerIds);
+  const winnerNames = scenario.cards
     .filter((card) => winnerIdSet.has(card.participantId))
     .map((card) => card.name)
     .join(", ");
+  const modeLabel =
+    scenario.presentationMode === "running-race"
+      ? "RUNNING RACE"
+      : "STANDARD";
 
   preview.innerHTML = `
     <header>
       <h2>PickMeMaybe LIVE</h2>
-      <div class="badge">LIVE</div>
+      <div class="badge">${modeLabel}</div>
     </header>
     <div class="preview-body">
       <div class="candidates">
-        ${cards.map((card) => createCandidateMarkup(card)).join("")}
+        ${scenario.cards.map((card) => createCandidateMarkup(card)).join("")}
       </div>
       <aside class="winner-panel">
         <div class="winner-label">최종 당첨 확정</div>
         <div class="winner-name">${escapeHtml(winnerNames)}</div>
       </aside>
     </div>
-    <footer>속보: 수기 입력 기반 추첨 집계 완료</footer>
+    <footer>속보: ${modeLabel} 추첨 연출 데이터 생성 완료</footer>
   `;
 }
 

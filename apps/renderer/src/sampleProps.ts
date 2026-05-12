@@ -5,6 +5,7 @@ export function createElectionBroadcastSampleProps(): ElectionBroadcastRenderPro
     scenario: {
       id: "sample-scenario",
       mode: "election-broadcast",
+      presentationMode: "standard",
       raffleResultId: "sample-raffle",
       participantIds: ["p1", "p2", "p3"],
       winnerIds: ["p2"],

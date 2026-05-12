@@ -27,11 +27,29 @@ export type BroadcastCandidateCard = {
   isWinner: boolean;
 };
 
+export type BroadcastPresentationMode = "standard" | "running-race";
+
+export type BroadcastRaceLane = {
+  participantId: string;
+  lane: number;
+  finishRank: number;
+  startPercent: number;
+  midpointPercent: number;
+  finishPercent: number;
+  isWinner: boolean;
+};
+
 export type ElectionBroadcastScenario = PresentationScenario & {
   mode: "election-broadcast";
+  presentationMode: BroadcastPresentationMode;
   title: string;
   aspectRatio: "16:9";
   cards: BroadcastCandidateCard[];
+  race?: {
+    lanes: BroadcastRaceLane[];
+    suspenseSecond: number;
+    revealSecond: number;
+  };
   timeline: BroadcastTimelineEvent[];
 };
 
@@ -41,6 +59,7 @@ export type CreateElectionBroadcastScenarioInput = {
   raffleResult: RaffleResult;
   participants: Participant[];
   visualAssets: VisualAsset[];
+  presentationMode?: BroadcastPresentationMode;
   durationSeconds?: number;
 };
 
@@ -57,43 +76,86 @@ export function createElectionBroadcastScenario(
 
   const participantIds = input.raffleResult.candidateIds;
   const winnerIdSet = new Set(input.raffleResult.winnerIds);
+  const presentationMode = input.presentationMode ?? "standard";
   validateWinnersBelongToCandidates(input.raffleResult);
+  const cards = participantIds.map((participantId) => {
+    const participant = participantIndex.get(participantId);
+    const asset = assetIndex.get(participantId);
 
-  return {
+    if (!participant) {
+      throw new Error(`Missing participant for scenario: ${participantId}`);
+    }
+
+    if (!asset) {
+      throw new Error(`Missing visual asset for scenario: ${participantId}`);
+    }
+
+    return {
+      participantId,
+      name: participant.name,
+      ...(participant.department
+        ? { department: participant.department }
+        : {}),
+      ...(participant.appliedAsset
+        ? { appliedAsset: participant.appliedAsset }
+        : {}),
+      imagePath: asset.imagePath,
+      isWinner: winnerIdSet.has(participantId),
+    };
+  });
+  const scenario: ElectionBroadcastScenario = {
     id: input.id,
     mode: "election-broadcast",
+    presentationMode,
     raffleResultId: input.raffleResult.id,
     participantIds,
     winnerIds: input.raffleResult.winnerIds,
     durationSeconds,
     title: input.title,
     aspectRatio: "16:9",
-    cards: participantIds.map((participantId) => {
-      const participant = participantIndex.get(participantId);
-      const asset = assetIndex.get(participantId);
+    cards,
+    timeline: createDefaultBroadcastTimeline(durationSeconds),
+  };
 
-      if (!participant) {
-        throw new Error(`Missing participant for scenario: ${participantId}`);
-      }
+  if (presentationMode === "running-race") {
+    scenario.race = createBroadcastRace(participantIds, winnerIdSet, durationSeconds);
+  }
 
-      if (!asset) {
-        throw new Error(`Missing visual asset for scenario: ${participantId}`);
-      }
+  return scenario;
+}
+
+export function createBroadcastRace(
+  participantIds: string[],
+  winnerIdSet: Set<string>,
+  durationSeconds: number,
+): ElectionBroadcastScenario["race"] {
+  const winnerIds = participantIds.filter((participantId) =>
+    winnerIdSet.has(participantId),
+  );
+  const nonWinnerIds = participantIds.filter(
+    (participantId) => !winnerIdSet.has(participantId),
+  );
+  const finishOrder = [...winnerIds, ...nonWinnerIds];
+  const finishRankIndex = new Map(
+    finishOrder.map((participantId, index) => [participantId, index + 1]),
+  );
+
+  return {
+    lanes: participantIds.map((participantId, index) => {
+      const isWinner = winnerIdSet.has(participantId);
 
       return {
         participantId,
-        name: participant.name,
-        ...(participant.department
-          ? { department: participant.department }
-          : {}),
-        ...(participant.appliedAsset
-          ? { appliedAsset: participant.appliedAsset }
-          : {}),
-        imagePath: asset.imagePath,
-        isWinner: winnerIdSet.has(participantId),
+        lane: index + 1,
+        finishRank: finishRankIndex.get(participantId) ?? index + 1,
+        startPercent: 5 + index * 2,
+        midpointPercent: isWinner ? 58 : Math.max(32, 50 - index * 3),
+        finishPercent: isWinner ? 100 : Math.max(68, 92 - index * 4),
+        isWinner,
       };
     }),
-    timeline: createDefaultBroadcastTimeline(durationSeconds),
+    suspenseSecond: durationSeconds * 0.52,
+    revealSecond: durationSeconds * 0.75,
   };
 }
 

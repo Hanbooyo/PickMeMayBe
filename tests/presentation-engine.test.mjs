@@ -65,6 +65,7 @@ test("createElectionBroadcastScenario creates winner cards and timeline", () => 
 
   assert.equal(scenario.id, "scenario-1");
   assert.equal(scenario.mode, "election-broadcast");
+  assert.equal(scenario.presentationMode, "standard");
   assert.equal(scenario.aspectRatio, "16:9");
   assert.deepEqual(scenario.participantIds, ["p1", "p2"]);
   assert.deepEqual(scenario.winnerIds, ["p2"]);
@@ -82,6 +83,30 @@ test("createElectionBroadcastScenario creates winner cards and timeline", () => 
       "celebration",
     ],
   );
+});
+
+test("createElectionBroadcastScenario creates running race metadata", () => {
+  const scenario = createElectionBroadcastScenario({
+    id: "scenario-race",
+    title: "PickMeMaybe Race",
+    raffleResult,
+    participants,
+    visualAssets,
+    presentationMode: "running-race",
+    durationSeconds: 10,
+  });
+
+  assert.equal(scenario.mode, "election-broadcast");
+  assert.equal(scenario.presentationMode, "running-race");
+  assert.equal(scenario.race?.lanes.length, 2);
+  assert.equal(scenario.race?.lanes[0].participantId, "p1");
+  assert.equal(scenario.race?.lanes[0].isWinner, false);
+  assert.equal(scenario.race?.lanes[1].participantId, "p2");
+  assert.equal(scenario.race?.lanes[1].isWinner, true);
+  assert.equal(scenario.race?.lanes[1].finishRank, 1);
+  assert.equal(scenario.race?.lanes[1].finishPercent, 100);
+  assert.equal(scenario.race?.suspenseSecond, 5.2);
+  assert.equal(scenario.race?.revealSecond, 7.5);
 });
 
 test("createElectionBroadcastScenario throws when a visual asset is missing", () => {

@@ -358,6 +358,7 @@ participant input
 -> fair raffle
 -> preview
 -> asset match status
+-> running-race metadata option
 -> latest render job
 -> MP4 artifact validation
 -> web list/download
@@ -375,6 +376,7 @@ participant input
 - 로컬 MVP 시연 경로는 통과했습니다.
 - 핵심 테스트는 63개 통과 상태입니다.
 - 추첨 로직은 crypto 기반 random을 사용합니다.
+- 추가 추첨 모드의 첫 단계로 `running-race` presentation metadata를 지원합니다.
 - render job, MP4, render input JSON은 기본 20개까지 보관합니다.
 - 남은 주요 리스크는 배포 환경용 API base URL 설정, 이미지 업로드 UX, 실제 단체사진 처리 pipeline입니다.
 

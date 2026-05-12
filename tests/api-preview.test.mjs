@@ -107,6 +107,33 @@ test("createManualPreview supports multiple winners", () => {
   );
 });
 
+test("createManualPreview supports running race presentation metadata", () => {
+  clearPreviewHistory();
+  const response = createManualPreview(
+    {
+      participants: [
+        {
+          name: "Alpha",
+          email: "alpha@example.com",
+        },
+        {
+          name: "Beta",
+          email: "beta@example.com",
+        },
+      ],
+      presentationMode: "running-race",
+    },
+    now,
+  );
+
+  assert.equal(response.scenario.presentationMode, "running-race");
+  assert.equal(response.scenario.race?.lanes.length, 2);
+  assert.equal(
+    response.scenario.race?.lanes.some((lane) => lane.isWinner),
+    true,
+  );
+});
+
 test("createManualPreview can exclude previous winners", () => {
   clearPreviewHistory();
   const participants = [

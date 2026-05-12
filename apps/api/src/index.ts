@@ -8,7 +8,10 @@ import { promisify } from "node:util";
 import * as XLSX from "xlsx";
 
 import { matchVisualAssets, type ImageResource } from "../../../packages/asset-matcher/src/index.js";
-import { createElectionBroadcastScenario } from "../../../packages/presentation-engine/src/index.js";
+import {
+  createElectionBroadcastScenario,
+  type BroadcastPresentationMode,
+} from "../../../packages/presentation-engine/src/index.js";
 import {
   drawWinners,
   RaffleEngineError,
@@ -39,6 +42,7 @@ export type ManualPreviewRequest = {
   winnerCount?: number;
   allowPreviousWinners?: boolean;
   previousWinnerIds?: string[];
+  presentationMode?: BroadcastPresentationMode;
 };
 
 export type RosterFileParseRequest = {
@@ -165,6 +169,7 @@ export function createManualPreview(
     raffleResult,
     participants: normalized.participants,
     visualAssets,
+    presentationMode: request.presentationMode,
     durationSeconds: 10,
   });
   const renderProps = createElectionBroadcastRenderProps(scenario);

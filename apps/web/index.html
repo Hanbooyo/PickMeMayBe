@@ -23,7 +23,8 @@
       }
 
       button,
-      input {
+      input,
+      select {
         font: inherit;
       }
 
@@ -61,7 +62,8 @@
         padding: 0;
       }
 
-      input {
+      input,
+      select {
         width: 100%;
         border: 1px solid rgba(148, 163, 184, 0.35);
         background: #020617;
@@ -579,6 +581,13 @@
             <label>
               당첨 인원
               <input id="winner-count" class="winner-count" type="number" min="1" step="1" value="1" />
+            </label>
+            <label>
+              연출 모드
+              <select id="presentation-mode">
+                <option value="standard">Standard</option>
+                <option value="running-race">Running race</option>
+              </select>
             </label>
             <label class="checkbox-label">
               <input id="allow-previous-winners" type="checkbox" checked />
