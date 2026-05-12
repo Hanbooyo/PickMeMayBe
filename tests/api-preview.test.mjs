@@ -10,6 +10,7 @@ import {
   createApiServer,
   createManualPreview,
   getPreviewHistory,
+  listRenderJobs,
   listRenderArtifacts,
   parseRosterFile,
 } from "../dist/apps/api/src/index.js";
@@ -391,6 +392,72 @@ test("createApiServer enqueues and completes latest render jobs", async () => {
     assert.equal(completed.status, "done");
     assert.equal(completed.result.stdout, "job rendered");
     assert.equal(completed.renders.length, 1);
+
+    const jobsResponse = await fetch(`http://127.0.0.1:${address.port}/api/render-jobs`);
+    const jobsPayload = await jobsResponse.json();
+    assert.equal(jobsResponse.status, 200);
+    assert.equal(jobsPayload.jobs.length, 1);
+    assert.equal(jobsPayload.jobs[0].id, createPayload.job.id);
+  } finally {
+    await close(server);
+    await rm(directory, { recursive: true, force: true });
+    await rm(inputDirectory, { recursive: true, force: true });
+    clearPreviewHistory();
+    clearRenderJobs();
+  }
+});
+
+test("listRenderJobs returns newest jobs first", async () => {
+  clearPreviewHistory();
+  clearRenderJobs();
+  createManualPreview(
+    {
+      participants: [
+        {
+          name: "Alpha",
+          email: "alpha@example.com",
+        },
+      ],
+    },
+    now,
+  );
+
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-renders-"));
+  const inputDirectory = await mkdtemp(join(tmpdir(), "pick-me-maybe-render-inputs-"));
+  const server = createApiServer({
+    renderDirectory: directory,
+    renderInputDirectory: inputDirectory,
+    renderLatest: async (outputPath) => {
+      await writeFile(outputPath, createMp4Fixture());
+
+      return {
+        stdout: "job rendered",
+        stderr: "",
+      };
+    },
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const first = await fetch(`http://127.0.0.1:${address.port}/api/render-latest-jobs`, {
+      method: "POST",
+    });
+    const firstPayload = await first.json();
+    await waitForRenderJob(address.port, firstPayload.job.id);
+
+    const second = await fetch(`http://127.0.0.1:${address.port}/api/render-latest-jobs`, {
+      method: "POST",
+    });
+    const secondPayload = await second.json();
+    await waitForRenderJob(address.port, secondPayload.job.id);
+
+    const jobs = listRenderJobs();
+    assert.equal(jobs.length, 2);
+    assert.equal(jobs[0].id, secondPayload.job.id);
+    assert.equal(jobs[1].id, firstPayload.job.id);
   } finally {
     await close(server);
     await rm(directory, { recursive: true, force: true });

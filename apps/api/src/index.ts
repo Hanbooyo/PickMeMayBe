@@ -190,6 +190,15 @@ export function getRenderJob(jobId: string): RenderJob | undefined {
   return job ? { ...job, renders: job.renders ? [...job.renders] : undefined } : undefined;
 }
 
+export function listRenderJobs(): RenderJob[] {
+  return [...renderJobs.values()]
+    .map((job) => ({
+      ...job,
+      renders: job.renders ? [...job.renders] : undefined,
+    }))
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
 export async function listRenderArtifacts(
   renderDirectory = "data/renders",
 ): Promise<RenderArtifactSummary[]> {
@@ -305,6 +314,11 @@ export function createApiServer(options: ApiServerOptions = {}) {
           renderLatest,
         });
         sendJson(response, 202, { job });
+        return;
+      }
+
+      if (request.method === "GET" && request.url === "/api/render-jobs") {
+        sendJson(response, 200, { jobs: listRenderJobs() });
         return;
       }
 
