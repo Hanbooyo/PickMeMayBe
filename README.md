@@ -213,6 +213,13 @@ npm.cmd run render:sample
 data/renders/election-broadcast-sample.mp4
 ```
 
+렌더 보관 정책:
+
+- API render job 이력은 기본 20개까지 유지합니다.
+- `data/renders`의 MP4 산출물은 기본 20개까지 유지합니다.
+- `data/render-inputs`의 최신 렌더 입력 JSON은 기본 20개까지 유지합니다.
+- 웹 UI의 render job polling은 장시간 멈춘 작업에서 무한 대기하지 않도록 제한됩니다.
+
 ## Demo
 
 권장 시연 순서:

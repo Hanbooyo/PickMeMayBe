@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { createReadStream } from "node:fs";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -64,6 +64,8 @@ export type ApiServerOptions = {
   renderInputDirectory?: string;
   faceResourceDirectory?: string;
   maxRenderJobs?: number;
+  maxRenderArtifacts?: number;
+  maxRenderInputs?: number;
   renderSample?: RenderSampleRunner;
   renderLatest?: RenderLatestRunner;
 };
@@ -120,6 +122,8 @@ let previewHistory: RaffleHistoryEntry[] = [];
 let latestRenderProps: ElectionBroadcastRenderProps | undefined;
 const renderJobs = new Map<string, RenderJob>();
 const defaultMaxRenderJobs = 20;
+const defaultMaxRenderArtifacts = 20;
+const defaultMaxRenderInputs = 20;
 
 export function createManualPreview(
   request: ManualPreviewRequest,
@@ -223,6 +227,74 @@ export function pruneRenderJobs(maxRenderJobs = defaultMaxRenderJobs): void {
   }
 }
 
+export async function pruneManagedFiles({
+  directory,
+  maxFiles,
+  predicate,
+}: {
+  directory: string;
+  maxFiles: number;
+  predicate: (fileName: string) => boolean;
+}): Promise<void> {
+  if (!Number.isInteger(maxFiles) || maxFiles < 1) {
+    throw new Error("maxFiles must be a positive integer.");
+  }
+
+  const resolvedDirectory = resolve(directory);
+  const entries = await readdir(resolvedDirectory, {
+    withFileTypes: true,
+  }).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") {
+      return [];
+    }
+
+    throw error;
+  });
+
+  const files = await Promise.all(
+    entries
+      .filter((entry) => entry.isFile() && predicate(entry.name))
+      .map(async (entry) => {
+        const path = join(resolvedDirectory, entry.name);
+        const metadata = await stat(path);
+
+        return {
+          path,
+          modifiedAt: metadata.mtimeMs,
+        };
+      }),
+  );
+
+  const removableFiles = files
+    .sort((left, right) => right.modifiedAt - left.modifiedAt)
+    .slice(maxFiles);
+
+  await Promise.all(removableFiles.map((file) => unlink(file.path)));
+}
+
+export async function pruneRenderArtifacts(
+  renderDirectory = "data/renders",
+  maxRenderArtifacts = defaultMaxRenderArtifacts,
+): Promise<void> {
+  await pruneManagedFiles({
+    directory: renderDirectory,
+    maxFiles: maxRenderArtifacts,
+    predicate: (fileName) => fileName.toLowerCase().endsWith(".mp4"),
+  });
+}
+
+export async function pruneRenderInputs(
+  renderInputDirectory = "data/render-inputs",
+  maxRenderInputs = defaultMaxRenderInputs,
+): Promise<void> {
+  await pruneManagedFiles({
+    directory: renderInputDirectory,
+    maxFiles: maxRenderInputs,
+    predicate: (fileName) =>
+      fileName.startsWith("latest-") && fileName.toLowerCase().endsWith(".json"),
+  });
+}
+
 export async function listRenderArtifacts(
   renderDirectory = "data/renders",
 ): Promise<RenderArtifactSummary[]> {
@@ -293,6 +365,8 @@ export function createApiServer(options: ApiServerOptions = {}) {
   const renderInputDirectory = options.renderInputDirectory ?? "data/render-inputs";
   const faceResourceDirectory = options.faceResourceDirectory ?? "resources/faces";
   const maxRenderJobs = options.maxRenderJobs ?? defaultMaxRenderJobs;
+  const maxRenderArtifacts = options.maxRenderArtifacts ?? defaultMaxRenderArtifacts;
+  const maxRenderInputs = options.maxRenderInputs ?? defaultMaxRenderInputs;
   const renderSample = options.renderSample ?? runSampleRenderCommand;
   const renderLatest = options.renderLatest ?? runLatestRenderCommand;
 
@@ -369,11 +443,13 @@ export function createApiServer(options: ApiServerOptions = {}) {
         const renderInput = await createLatestRenderInput(
           renderDirectory,
           renderInputDirectory,
+          maxRenderInputs,
         );
         const result = await renderLatest(
           renderInput.outputPath,
           renderInput.inputPropsPath,
         );
+        await pruneRenderArtifacts(renderDirectory, maxRenderArtifacts);
         sendJson(response, 200, {
           render: result,
           renders: await listRenderArtifacts(renderDirectory),
@@ -386,6 +462,8 @@ export function createApiServer(options: ApiServerOptions = {}) {
           renderDirectory,
           renderInputDirectory,
           maxRenderJobs,
+          maxRenderArtifacts,
+          maxRenderInputs,
           renderLatest,
         });
         sendJson(response, 202, { job });
@@ -421,16 +499,21 @@ async function enqueueLatestRenderJob({
   renderDirectory,
   renderInputDirectory,
   maxRenderJobs,
+  maxRenderArtifacts,
+  maxRenderInputs,
   renderLatest,
 }: {
   renderDirectory: string;
   renderInputDirectory: string;
   maxRenderJobs: number;
+  maxRenderArtifacts: number;
+  maxRenderInputs: number;
   renderLatest: RenderLatestRunner;
 }): Promise<RenderJob> {
   const renderInput = await createLatestRenderInput(
     renderDirectory,
     renderInputDirectory,
+    maxRenderInputs,
   );
   const now = new Date().toISOString();
   const job: RenderJob = {
@@ -445,7 +528,13 @@ async function enqueueLatestRenderJob({
   pruneRenderJobs(maxRenderJobs);
 
   setImmediate(() => {
-    void runRenderJob(job.id, renderDirectory, maxRenderJobs, renderLatest);
+    void runRenderJob(
+      job.id,
+      renderDirectory,
+      maxRenderJobs,
+      maxRenderArtifacts,
+      renderLatest,
+    );
   });
 
   return { ...job };
@@ -455,6 +544,7 @@ async function runRenderJob(
   jobId: string,
   renderDirectory: string,
   maxRenderJobs: number,
+  maxRenderArtifacts: number,
   renderLatest: RenderLatestRunner,
 ): Promise<void> {
   const job = renderJobs.get(jobId);
@@ -469,6 +559,7 @@ async function runRenderJob(
 
   try {
     const result = await renderLatest(job.outputPath, job.inputPropsPath);
+    await pruneRenderArtifacts(renderDirectory, maxRenderArtifacts);
     const renders = await listRenderArtifacts(renderDirectory);
     updateRenderJob(jobId, {
       status: "done",
@@ -546,6 +637,7 @@ async function runSampleRenderCommand(): Promise<RenderSampleResult> {
 async function createLatestRenderInput(
   renderDirectory: string,
   inputDirectory: string,
+  maxRenderInputs: number,
 ): Promise<{
   outputPath: string;
   inputPropsPath: string;
@@ -561,6 +653,7 @@ async function createLatestRenderInput(
   await mkdir(renderDirectory, { recursive: true });
   await mkdir(inputDirectory, { recursive: true });
   await writeFile(inputPropsPath, JSON.stringify(latestRenderProps, null, 2));
+  await pruneRenderInputs(inputDirectory, maxRenderInputs);
 
   return {
     outputPath,

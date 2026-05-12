@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -386,6 +386,72 @@ test("createApiServer renders the latest manual preview", async () => {
     assert.match(payload.render.stdout, /rendered/);
     assert.equal(payload.renders.length, 1);
     assert.match(payload.renders[0].fileName, /^election-broadcast-/);
+  } finally {
+    await close(server);
+    await rm(directory, { recursive: true, force: true });
+    await rm(inputDirectory, { recursive: true, force: true });
+    clearPreviewHistory();
+  }
+});
+
+test("createApiServer prunes render artifacts and input props", async () => {
+  clearPreviewHistory();
+  createManualPreview(
+    {
+      participants: [
+        {
+          name: "Alpha",
+          email: "alpha@example.com",
+        },
+      ],
+    },
+    now,
+  );
+
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-pruned-renders-"));
+  const inputDirectory = await mkdtemp(join(tmpdir(), "pick-me-maybe-pruned-inputs-"));
+  const server = createApiServer({
+    renderDirectory: directory,
+    renderInputDirectory: inputDirectory,
+    maxRenderArtifacts: 1,
+    maxRenderInputs: 1,
+    renderLatest: async (outputPath) => {
+      await writeFile(outputPath, createMp4Fixture());
+
+      return {
+        stdout: `rendered ${outputPath}`,
+        stderr: "",
+      };
+    },
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const first = await fetch(`http://127.0.0.1:${address.port}/api/render-latest`, {
+      method: "POST",
+    });
+    assert.equal(first.status, 200);
+    await delay(5);
+
+    const second = await fetch(`http://127.0.0.1:${address.port}/api/render-latest`, {
+      method: "POST",
+    });
+    const payload = await second.json();
+
+    const renderFiles = (await readdir(directory)).filter((fileName) =>
+      fileName.endsWith(".mp4"),
+    );
+    const inputFiles = (await readdir(inputDirectory)).filter((fileName) =>
+      fileName.endsWith(".json"),
+    );
+
+    assert.equal(second.status, 200);
+    assert.equal(payload.renders.length, 1);
+    assert.equal(renderFiles.length, 1);
+    assert.equal(inputFiles.length, 1);
   } finally {
     await close(server);
     await rm(directory, { recursive: true, force: true });
