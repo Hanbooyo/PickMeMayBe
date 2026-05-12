@@ -17,6 +17,7 @@ Fair raffle first, dramatic presentation second.
 - 참가자 이름을 우선 기준으로 얼굴 이미지 리소스를 매칭합니다.
 - 동명이인은 이메일을 보조 기준으로 사용합니다.
 - 이미지가 없는 참가자는 `anonymous.svg`를 사용합니다.
+- 웹에서 사용 가능한 얼굴 리소스와 참가자별 매칭 상태를 확인합니다.
 - crypto 기반 랜덤으로 실제 당첨자를 공정하게 선정합니다.
 - 추첨 결과를 election broadcast 스타일 preview와 MP4 렌더로 출력합니다.
 - 생성된 MP4 목록을 웹에서 확인하고 다운로드합니다.
@@ -29,6 +30,8 @@ Fair raffle first, dramatic presentation second.
 - Excel roster import
 - Participant normalization
 - Face/resource image matching
+- Face resource listing
+- Participant asset match status summary
 - Anonymous image fallback
 - Crypto-based raffle engine
 - Previous winner exclusion option
@@ -57,7 +60,7 @@ Fair raffle first, dramatic presentation second.
 | --- | --- | --- |
 | Language | TypeScript | API, web, renderer, shared packages 공통 사용 |
 | Package Manager | npm workspaces | `apps/*`, `packages/*` monorepo |
-| Frontend | Static web + TypeScript | MVP용 수동 입력, preview, render control UI |
+| Frontend | Static web + TypeScript | MVP용 수동 입력, preview, resource/match 확인, render control UI |
 | Backend | Node.js HTTP server | 외부 framework 없이 endpoint를 작게 구성 |
 | Renderer | Remotion | React 기반 composition과 MP4 렌더링 |
 | Raffle Logic | Node/Web Crypto | 공정 추첨용 crypto random |
@@ -100,8 +103,8 @@ tests/
 
 주요 역할:
 
-- `apps/api`: preview 생성, Excel parsing, render job orchestration, MP4 목록/다운로드 API
-- `apps/web`: 참가자 입력, 추첨 실행, preview, render job polling, MP4 다운로드 UI
+- `apps/api`: preview 생성, Excel parsing, 얼굴 리소스 조회, render job orchestration, MP4 목록/다운로드 API
+- `apps/web`: 참가자 입력, 추첨 실행, 얼굴 리소스/매칭 상태 확인, preview, render job polling, MP4 다운로드 UI
 - `apps/renderer`: Remotion composition, sample/latest render execution
 - `packages/raffle-engine`: 공정 추첨 로직
 - `packages/roster-import`: Excel/수동 입력 정규화
@@ -139,6 +142,18 @@ Excel 예상 컬럼:
 2. 동명이인 발생 시 이메일 기준 보조 매칭
 3. 필요 시 이름 + 부서 기준 확장 가능
 4. 매칭 실패 시 anonymous placeholder 사용
+```
+
+웹 preview는 추첨 실행 후 `Asset matches` 패널에 참가자별 이미지 경로와 매칭 방식을 표시합니다. 상단 요약에서 실제 매칭된 참가자 수와 anonymous fallback 수를 확인할 수 있습니다.
+
+얼굴 리소스는 `resources/faces` 디렉터리에서 읽습니다. 현재 지원 확장자는 다음과 같습니다.
+
+```text
+svg
+png
+jpg
+jpeg
+webp
 ```
 
 ## Render Flow
@@ -221,7 +236,7 @@ http://localhost:4318/apps/web/index.html
 1. 웹에서 참가자를 수동 입력하거나 Excel 파일을 업로드합니다.
 2. 당첨 인원과 과거 당첨자 허용 여부를 설정합니다.
 3. `추첨 실행`을 누릅니다.
-4. preview에서 당첨 결과를 확인합니다.
+4. preview에서 당첨 결과와 `Asset matches` 매칭 요약을 확인합니다.
 5. `Render latest`를 누릅니다.
 6. render job 상태가 완료될 때까지 기다립니다.
 7. `Render outputs` 목록에서 생성된 MP4를 확인합니다.
@@ -234,6 +249,7 @@ http://localhost:4318/apps/web/index.html
 ```text
 GET  /health
 GET  /api/history
+GET  /api/resources/faces
 POST /api/manual-preview
 POST /api/parse-roster-file
 GET  /api/renders
@@ -246,6 +262,7 @@ GET  /api/render-jobs/:jobId
 
 렌더 관련 endpoint:
 
+- `GET /api/resources/faces`: 로컬 얼굴 이미지 리소스 목록 조회
 - `GET /api/renders`: 검증된 MP4 산출물 목록 조회
 - `GET /api/renders/:fileName`: MP4 다운로드
 - `POST /api/render-sample`: 샘플 props 기반 렌더
@@ -259,12 +276,12 @@ GET  /api/render-jobs/:jobId
 
 - `raffle-engine`: winner count, duplicate participant, previous winner exclusion
 - `roster-import`: Excel table parsing, paste parsing, manual input helpers
-- `asset-matcher`: name/email matching, anonymous fallback
+- `asset-matcher`: name/email matching, anonymous fallback, match status summary
 - `presentation-engine`: scenario consistency, timeline validation
 - `render-types`: render props and video settings
 - `render-validation`: MP4 signature and size validation
-- `api`: manual preview, Excel parsing, render list/download, render job status
-- `web`: static web page smoke test
+- `api`: manual preview, Excel parsing, face resource list, render list/download, render job status
+- `web`: static web page smoke test, resource/match panel smoke coverage
 
 현재 검증 명령:
 
@@ -276,7 +293,7 @@ npm.cmd test
 
 ## Current Status
 
-MVP 진행률: 약 90%
+MVP 진행률: 약 95%
 
 완료된 핵심 흐름:
 
@@ -284,6 +301,7 @@ MVP 진행률: 약 90%
 participant input
 -> fair raffle
 -> preview
+-> asset match status
 -> latest render job
 -> MP4 artifact validation
 -> web list/download
@@ -291,8 +309,8 @@ participant input
 
 다음 우선순위:
 
-1. render job 목록 조회 API와 웹 job history 표시
-2. 실제 참가자 이미지 리소스 관리 UX
-3. Remotion template 시각 품질 개선
-4. 단체사진/개별 얼굴 리소스 기반 compositing pipeline 설계
-5. 추가 추첨 연출 모드 확장
+1. Remotion template 시각 품질 개선
+2. 실제 이미지 업로드/관리 UX
+3. 단체사진/개별 얼굴 리소스 기반 compositing pipeline 설계
+4. 추가 추첨 연출 모드 확장
+5. MVP 마감 전 코드 리뷰와 리스크 정리
