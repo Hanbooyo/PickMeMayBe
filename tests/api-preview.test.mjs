@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 
 import {
   clearPreviewHistory,
+  clearRenderJobs,
   createApiServer,
   createManualPreview,
   getPreviewHistory,
@@ -341,6 +342,114 @@ test("createApiServer renders the latest manual preview", async () => {
   }
 });
 
+test("createApiServer enqueues and completes latest render jobs", async () => {
+  clearPreviewHistory();
+  clearRenderJobs();
+  createManualPreview(
+    {
+      participants: [
+        {
+          name: "Alpha",
+          email: "alpha@example.com",
+        },
+      ],
+    },
+    now,
+  );
+
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-renders-"));
+  const inputDirectory = await mkdtemp(join(tmpdir(), "pick-me-maybe-render-inputs-"));
+  const server = createApiServer({
+    renderDirectory: directory,
+    renderInputDirectory: inputDirectory,
+    renderLatest: async (outputPath) => {
+      await writeFile(outputPath, createMp4Fixture());
+
+      return {
+        stdout: "job rendered",
+        stderr: "",
+      };
+    },
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const createResponse = await fetch(
+      `http://127.0.0.1:${address.port}/api/render-latest-jobs`,
+      {
+        method: "POST",
+      },
+    );
+    const createPayload = await createResponse.json();
+    assert.equal(createResponse.status, 202);
+    assert.equal(createPayload.job.status, "queued");
+
+    const completed = await waitForRenderJob(address.port, createPayload.job.id);
+    assert.equal(completed.status, "done");
+    assert.equal(completed.result.stdout, "job rendered");
+    assert.equal(completed.renders.length, 1);
+  } finally {
+    await close(server);
+    await rm(directory, { recursive: true, force: true });
+    await rm(inputDirectory, { recursive: true, force: true });
+    clearPreviewHistory();
+    clearRenderJobs();
+  }
+});
+
+test("createApiServer records failed latest render jobs", async () => {
+  clearPreviewHistory();
+  clearRenderJobs();
+  createManualPreview(
+    {
+      participants: [
+        {
+          name: "Alpha",
+          email: "alpha@example.com",
+        },
+      ],
+    },
+    now,
+  );
+
+  const directory = await mkdtemp(join(tmpdir(), "pick-me-maybe-renders-"));
+  const inputDirectory = await mkdtemp(join(tmpdir(), "pick-me-maybe-render-inputs-"));
+  const server = createApiServer({
+    renderDirectory: directory,
+    renderInputDirectory: inputDirectory,
+    renderLatest: async () => {
+      throw new Error("render failed");
+    },
+  });
+  await listen(server);
+
+  try {
+    const address = server.address();
+    assert.equal(typeof address, "object");
+
+    const createResponse = await fetch(
+      `http://127.0.0.1:${address.port}/api/render-latest-jobs`,
+      {
+        method: "POST",
+      },
+    );
+    const createPayload = await createResponse.json();
+    const completed = await waitForRenderJob(address.port, createPayload.job.id);
+
+    assert.equal(completed.status, "failed");
+    assert.equal(completed.error, "render failed");
+  } finally {
+    await close(server);
+    await rm(directory, { recursive: true, force: true });
+    await rm(inputDirectory, { recursive: true, force: true });
+    clearPreviewHistory();
+    clearRenderJobs();
+  }
+});
+
 test("createApiServer rejects latest render without a preview", async () => {
   clearPreviewHistory();
   const server = createApiServer({
@@ -446,6 +555,21 @@ function close(server) {
       resolve();
     });
   });
+}
+
+async function waitForRenderJob(port, jobId) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const response = await fetch(`http://127.0.0.1:${port}/api/render-jobs/${jobId}`);
+    const payload = await response.json();
+
+    if (payload.job.status === "done" || payload.job.status === "failed") {
+      return payload.job;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+
+  throw new Error(`Render job did not finish: ${jobId}`);
 }
 
 function createMp4Fixture() {

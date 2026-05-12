@@ -3,6 +3,7 @@ import { createReadStream } from "node:fs";
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 import * as XLSX from "xlsx";
 
@@ -69,6 +70,20 @@ export type RenderSampleResult = {
   stderr: string;
 };
 
+export type RenderJobStatus = "queued" | "running" | "done" | "failed";
+
+export type RenderJob = {
+  id: string;
+  status: RenderJobStatus;
+  createdAt: string;
+  updatedAt: string;
+  outputPath?: string;
+  inputPropsPath?: string;
+  result?: RenderSampleResult;
+  error?: string;
+  renders?: RenderArtifactSummary[];
+};
+
 export type ManualPreviewResponse = {
   participants: ReturnType<typeof normalizeManualInputs>["participants"];
   visualAssets: ReturnType<typeof matchVisualAssets>;
@@ -94,6 +109,7 @@ const defaultResources: ImageResource[] = [
 ];
 let previewHistory: RaffleHistoryEntry[] = [];
 let latestRenderProps: ElectionBroadcastRenderProps | undefined;
+const renderJobs = new Map<string, RenderJob>();
 
 export function createManualPreview(
   request: ManualPreviewRequest,
@@ -162,6 +178,16 @@ export function getPreviewHistory(): RaffleHistoryEntry[] {
 export function clearPreviewHistory(): void {
   previewHistory = [];
   latestRenderProps = undefined;
+}
+
+export function clearRenderJobs(): void {
+  renderJobs.clear();
+}
+
+export function getRenderJob(jobId: string): RenderJob | undefined {
+  const job = renderJobs.get(jobId);
+
+  return job ? { ...job, renders: job.renders ? [...job.renders] : undefined } : undefined;
 }
 
 export async function listRenderArtifacts(
@@ -272,10 +298,112 @@ export function createApiServer(options: ApiServerOptions = {}) {
         return;
       }
 
+      if (request.method === "POST" && request.url === "/api/render-latest-jobs") {
+        const job = await enqueueLatestRenderJob({
+          renderDirectory,
+          renderInputDirectory,
+          renderLatest,
+        });
+        sendJson(response, 202, { job });
+        return;
+      }
+
+      if (request.method === "GET" && request.url?.startsWith("/api/render-jobs/")) {
+        const jobId = decodeURIComponent(request.url.slice("/api/render-jobs/".length));
+        const job = getRenderJob(jobId);
+
+        if (!job) {
+          sendJson(response, 404, { error: "Render job not found." });
+          return;
+        }
+
+        sendJson(response, 200, { job });
+        return;
+      }
+
       sendJson(response, 404, { error: "Not found" });
     } catch (error) {
       sendJson(response, 400, createErrorPayload(error));
     }
+  });
+}
+
+async function enqueueLatestRenderJob({
+  renderDirectory,
+  renderInputDirectory,
+  renderLatest,
+}: {
+  renderDirectory: string;
+  renderInputDirectory: string;
+  renderLatest: RenderLatestRunner;
+}): Promise<RenderJob> {
+  const renderInput = await createLatestRenderInput(
+    renderDirectory,
+    renderInputDirectory,
+  );
+  const now = new Date().toISOString();
+  const job: RenderJob = {
+    id: randomUUID(),
+    status: "queued",
+    createdAt: now,
+    updatedAt: now,
+    outputPath: renderInput.outputPath,
+    inputPropsPath: renderInput.inputPropsPath,
+  };
+  renderJobs.set(job.id, job);
+
+  setImmediate(() => {
+    void runRenderJob(job.id, renderDirectory, renderLatest);
+  });
+
+  return { ...job };
+}
+
+async function runRenderJob(
+  jobId: string,
+  renderDirectory: string,
+  renderLatest: RenderLatestRunner,
+): Promise<void> {
+  const job = renderJobs.get(jobId);
+
+  if (!job?.outputPath || !job.inputPropsPath) {
+    return;
+  }
+
+  updateRenderJob(jobId, {
+    status: "running",
+  });
+
+  try {
+    const result = await renderLatest(job.outputPath, job.inputPropsPath);
+    const renders = await listRenderArtifacts(renderDirectory);
+    updateRenderJob(jobId, {
+      status: "done",
+      result,
+      renders,
+    });
+  } catch (error) {
+    updateRenderJob(jobId, {
+      status: "failed",
+      error: error instanceof Error ? error.message : "Unknown render job error.",
+    });
+  }
+}
+
+function updateRenderJob(
+  jobId: string,
+  patch: Partial<Omit<RenderJob, "id" | "createdAt">>,
+): void {
+  const current = renderJobs.get(jobId);
+
+  if (!current) {
+    return;
+  }
+
+  renderJobs.set(jobId, {
+    ...current,
+    ...patch,
+    updatedAt: new Date().toISOString(),
   });
 }
 
