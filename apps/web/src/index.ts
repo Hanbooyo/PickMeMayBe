@@ -21,7 +21,7 @@ const renderLatestJobsEndpoint = "http://localhost:4317/api/render-latest-jobs";
 const renderJobsEndpoint = "http://localhost:4317/api/render-jobs";
 const renderJobPollIntervalMs = 1200;
 const renderJobMaxPolls = 150;
-const minimumSuspenseMs = 3800;
+const defaultRevealDurationMs = 4000;
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -63,6 +63,7 @@ const inputPanel = getElement("panel-input");
 const drawPanel = getElement("panel-draw");
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
 const presentationModeInput = getElement("presentation-mode") as HTMLSelectElement;
+const revealDurationInput = getElement("reveal-duration") as HTMLSelectElement;
 const pasteRosterInput = getElement("paste-roster") as HTMLTextAreaElement;
 const rosterFileInput = getElement("roster-file") as HTMLInputElement;
 const allowPreviousWinnersInput = getElement(
@@ -180,8 +181,13 @@ async function runPreview(): Promise<void> {
     }
 
     const presentationMode = readPresentationMode();
+    const revealDurationMs = readRevealDurationMs();
     const suspenseStartedAt = Date.now();
-    renderSuspensePreview(presentationMode, normalized.participants.length);
+    renderSuspensePreview(
+      presentationMode,
+      normalized.participants.length,
+      revealDurationMs,
+    );
     setActiveTab("draw");
 
     const response = await fetch(manualPreviewEndpoint, {
@@ -210,7 +216,7 @@ async function runPreview(): Promise<void> {
       throw new Error(formatApiError(payload));
     }
 
-    await delay(Math.max(0, minimumSuspenseMs - (Date.now() - suspenseStartedAt)));
+    await delay(Math.max(0, revealDurationMs - (Date.now() - suspenseStartedAt)));
     renderPreview(payload.scenario);
     renderAssetMatches(payload.scenario.cards, payload.visualAssets);
     resultHistory = payload.history;
@@ -329,6 +335,16 @@ function readWinnerCount(): number {
   }
 
   return winnerCount;
+}
+
+function readRevealDurationMs(): number {
+  const durationMs = Number(revealDurationInput.value);
+
+  if ([3000, 4000, 5000].includes(durationMs)) {
+    return durationMs;
+  }
+
+  return defaultRevealDurationMs;
 }
 
 type BroadcastPresentationMode =
@@ -745,6 +761,7 @@ function renderPreview(
 function renderSuspensePreview(
   presentationMode: BroadcastPresentationMode,
   participantCount: number,
+  revealDurationMs: number,
 ): void {
   const isRaceMode = presentationMode === "running-race";
   const modeLabel = formatPresentationMode(presentationMode);
@@ -758,7 +775,7 @@ function renderSuspensePreview(
       ${visual}
       <div>
         <div class="suspense-title">${escapeHtml(title)}</div>
-        <div class="suspense-subtitle">${escapeHtml(subtitle)}</div>
+        <div class="suspense-subtitle">${escapeHtml(subtitle)} · ${Math.round(revealDurationMs / 1000)}초</div>
       </div>
     </div>
   `;

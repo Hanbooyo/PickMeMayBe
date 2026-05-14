@@ -20,6 +20,7 @@ test("static web server serves the manual preview page", async () => {
     assert.match(body, /PickMeMaybe Manual Preview/);
     assert.match(body, /입력 관리/);
     assert.match(body, /추첨 방송/);
+    assert.match(body, /연출 시간/);
     assert.match(body, /Face resources/);
     assert.match(body, /Asset matches/);
     assert.match(body, /Running race/);
