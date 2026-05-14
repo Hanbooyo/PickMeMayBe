@@ -187,8 +187,10 @@
 
       .draw-layout {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 380px;
+        grid-template-columns: minmax(0, 1fr);
         gap: 18px;
+        max-width: 980px;
+        margin: 0 auto;
       }
 
       .toolbar {
@@ -501,9 +503,10 @@
         display: grid;
         place-items: center;
         align-content: center;
-        gap: 18px;
-        padding: 28px;
+        gap: 12px;
+        padding: 22px;
         text-align: center;
+        overflow: auto;
       }
 
       .mode-chip {
@@ -524,7 +527,7 @@
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 16px;
+        gap: 12px;
       }
 
       .reveal-accent {
@@ -813,21 +816,21 @@
       }
 
       .winner-card {
-        width: min(190px, 42%);
-        min-width: 148px;
+        width: min(176px, 42%);
+        min-width: 136px;
         display: grid;
         justify-items: center;
-        gap: 8px;
-        padding: 18px 16px;
-        border-radius: 36px;
+        gap: 6px;
+        padding: 14px 14px;
+        border-radius: 30px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         background: rgba(255, 255, 255, 0.14);
         box-shadow: 0 14px 30px rgba(2, 48, 71, 0.22);
       }
 
       .winner-avatar {
-        width: 74px;
-        height: 74px;
+        width: 64px;
+        height: 64px;
         display: grid;
         place-items: center;
         border-radius: 999px;
@@ -1358,23 +1361,6 @@
         <section id="panel-draw" class="panel tab-panel">
           <div class="draw-layout">
             <div class="preview" id="preview"></div>
-            <section class="renders">
-              <div class="renders-header">
-                <div>
-                  <h2>Render outputs</h2>
-                  <p>Generated MP4 files from the local render pipeline.</p>
-                </div>
-                <div class="render-actions">
-                  <button id="render-latest" class="primary" type="button">Render latest</button>
-                  <button id="refresh-renders" type="button">Refresh</button>
-                </div>
-              </div>
-              <div class="render-list" id="render-list"></div>
-              <div class="job-history">
-                <div class="history-title">Render job history</div>
-                <div class="job-list" id="render-job-list"></div>
-              </div>
-            </section>
           </div>
         </section>
       </main>

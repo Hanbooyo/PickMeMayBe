@@ -24,8 +24,8 @@ test("static web server serves the manual preview page", async () => {
     assert.match(body, /Face resources/);
     assert.match(body, /Asset matches/);
     assert.match(body, /Running race/);
-    assert.match(body, /Render outputs/);
-    assert.match(body, /Render job history/);
+    assert.doesNotMatch(body, /Render outputs/);
+    assert.doesNotMatch(body, /Render job history/);
   } finally {
     await close(server);
   }

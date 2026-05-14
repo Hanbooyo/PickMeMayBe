@@ -15,12 +15,7 @@ const importedAt = new Date().toISOString();
 const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
 const historyEndpoint = "http://localhost:4317/api/history";
 const parseRosterFileEndpoint = "http://localhost:4317/api/parse-roster-file";
-const rendersEndpoint = "http://localhost:4317/api/renders";
 const faceResourcesEndpoint = "http://localhost:4317/api/resources/faces";
-const renderLatestJobsEndpoint = "http://localhost:4317/api/render-latest-jobs";
-const renderJobsEndpoint = "http://localhost:4317/api/render-jobs";
-const renderJobPollIntervalMs = 1200;
-const renderJobMaxPolls = 150;
 const defaultRevealDurationMs = 4000;
 let inputs: ManualParticipantInput[] = [
   {
@@ -52,11 +47,7 @@ const history = getElement("history");
 const resourceSummary = getElement("resource-summary");
 const assetMatchSummary = getElement("asset-match-summary");
 const assetMatchList = getElement("asset-match-list");
-const renderList = getElement("render-list");
-const renderJobList = getElement("render-job-list");
 const runPreviewButton = getElement("run-preview") as HTMLButtonElement;
-const renderLatestButton = getElement("render-latest") as HTMLButtonElement;
-const refreshRendersButton = getElement("refresh-renders") as HTMLButtonElement;
 const inputTabButton = getElement("tab-input") as HTMLButtonElement;
 const drawTabButton = getElement("tab-draw") as HTMLButtonElement;
 const inputPanel = getElement("panel-input");
@@ -97,15 +88,6 @@ getElement("apply-file").addEventListener("click", async () => {
   await applyRosterFile();
 });
 
-refreshRendersButton.addEventListener("click", async () => {
-  await loadRenderArtifacts();
-  await loadRenderJobs();
-});
-
-renderLatestButton.addEventListener("click", async () => {
-  await renderLatestVideo();
-});
-
 inputTabButton.addEventListener("click", () => {
   setActiveTab("input");
 });
@@ -118,8 +100,6 @@ render();
 void checkApiStatus();
 void loadHistory();
 void loadFaceResources();
-void loadRenderArtifacts();
-void loadRenderJobs();
 void runPreview();
 
 function render(): void {
@@ -421,63 +401,6 @@ async function loadFaceResources(): Promise<void> {
   }
 }
 
-async function loadRenderArtifacts(): Promise<void> {
-  refreshRendersButton.disabled = true;
-
-  try {
-    const response = await fetch(rendersEndpoint);
-
-    if (!response.ok) {
-      throw new Error("Render artifact request failed.");
-    }
-
-    const payload = (await response.json()) as {
-      renders: RenderArtifactSummary[];
-    };
-    renderArtifacts(payload.renders);
-  } catch {
-    renderList.innerHTML = `<div class="empty-state">Render outputs are not available. Start the API server and run npm.cmd run render:sample.</div>`;
-  } finally {
-    refreshRendersButton.disabled = false;
-  }
-}
-
-async function renderLatestVideo(): Promise<void> {
-  setRenderBusy(true);
-  renderList.innerHTML = `<div class="empty-state">Queueing latest raffle render job.</div>`;
-
-  try {
-    const response = await fetch(renderLatestJobsEndpoint, {
-      method: "POST",
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      throw new Error(payload.error ?? "Latest render job request failed.");
-    }
-
-    const payload = (await response.json()) as {
-      job: RenderJob;
-    };
-    const completed = await waitForRenderJob(payload.job.id);
-
-    if (completed.status === "failed") {
-      throw new Error(completed.error ?? "Latest render job failed.");
-    }
-
-    renderArtifacts(completed.renders ?? []);
-    await loadRenderJobs();
-  } catch (error) {
-    renderList.innerHTML = `<div class="empty-state">${escapeHtml(
-      error instanceof Error
-        ? `${error.message} Run a raffle preview first and check that the API server can run npm.cmd run render:sample.`
-        : "Latest render failed.",
-    )}</div>`;
-  } finally {
-    setRenderBusy(false);
-  }
-}
-
 type ManualPreviewApiResponse = {
   error?: string;
   code?: string;
@@ -493,70 +416,12 @@ type VisualAssetSummary = {
   matchedBy: "name" | "email" | "name-and-department" | "fallback";
 };
 
-type RenderArtifactSummary = {
-  fileName: string;
-  path: string;
-  sizeBytes: number;
-  format: "mp4";
-};
-
 type FaceResourceSummary = {
   fileName: string;
   key: string;
   path: string;
   format: "svg" | "png" | "jpg" | "jpeg" | "webp";
 };
-
-type RenderJob = {
-  id: string;
-  status: "queued" | "running" | "done" | "failed";
-  createdAt?: string;
-  updatedAt?: string;
-  error?: string;
-  renders?: RenderArtifactSummary[];
-};
-
-async function loadRenderJobs(): Promise<void> {
-  try {
-    const response = await fetch(renderJobsEndpoint);
-
-    if (!response.ok) {
-      throw new Error("Render job history request failed.");
-    }
-
-    const payload = (await response.json()) as {
-      jobs: RenderJob[];
-    };
-    renderJobs(payload.jobs);
-  } catch {
-    renderJobList.innerHTML = `<div class="empty-state">Render job history is not available.</div>`;
-  }
-}
-
-async function waitForRenderJob(jobId: string): Promise<RenderJob> {
-  for (let pollCount = 0; pollCount < renderJobMaxPolls; pollCount += 1) {
-    const response = await fetch(`${renderJobsEndpoint}/${encodeURIComponent(jobId)}`);
-
-    if (!response.ok) {
-      const payload = (await response.json()) as { error?: string };
-      throw new Error(payload.error ?? "Render job status request failed.");
-    }
-
-    const payload = (await response.json()) as {
-      job: RenderJob;
-    };
-
-    renderList.innerHTML = `<div class="empty-state">Render job ${escapeHtml(payload.job.status)}...</div>`;
-
-    if (payload.job.status === "done" || payload.job.status === "failed") {
-      return payload.job;
-    }
-
-    await delay(renderJobPollIntervalMs);
-  }
-
-  throw new Error("Render job polling timed out.");
-}
 
 function formatApiError(payload: ManualPreviewApiResponse): string {
   switch (payload.code) {
@@ -659,47 +524,6 @@ function renderAssetMatches(
     .join("");
 }
 
-function renderArtifacts(renders: RenderArtifactSummary[]): void {
-  if (renders.length === 0) {
-    renderList.innerHTML = `<div class="empty-state">No render outputs yet. Run npm.cmd run render:sample.</div>`;
-    return;
-  }
-
-  renderList.innerHTML = renders
-    .map(
-      (render) => `
-        <article class="render-item">
-          <div>
-            <div class="render-name">${escapeHtml(render.fileName)}</div>
-            <a class="render-download" href="${rendersEndpoint}/${encodeURIComponent(render.fileName)}" download>Download MP4</a>
-          </div>
-          <div class="render-meta">${escapeHtml(render.format.toUpperCase())} · ${formatBytes(render.sizeBytes)}</div>
-        </article>
-      `,
-    )
-    .join("");
-}
-
-function renderJobs(jobs: RenderJob[]): void {
-  if (jobs.length === 0) {
-    renderJobList.innerHTML = `<div class="empty-state">No render jobs yet.</div>`;
-    return;
-  }
-
-  renderJobList.innerHTML = jobs
-    .slice(0, 5)
-    .map(
-      (job) => `
-        <article class="job-item">
-          <div class="job-status">${escapeHtml(job.status)}</div>
-          <div class="job-id">${escapeHtml(job.id.slice(0, 8))}</div>
-          <div class="job-time">${escapeHtml(formatHistoryTime(job.updatedAt ?? job.createdAt ?? ""))}</div>
-        </article>
-      `,
-    )
-    .join("");
-}
-
 function formatHistoryTime(value: string): string {
   if (!value) {
     return "-";
@@ -710,14 +534,6 @@ function formatHistoryTime(value: string): string {
     minute: "2-digit",
     second: "2-digit",
   }).format(new Date(value));
-}
-
-function formatBytes(sizeBytes: number): string {
-  if (sizeBytes < 1024 * 1024) {
-    return `${Math.round(sizeBytes / 1024)} KB`;
-  }
-
-  return `${(sizeBytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function delay(milliseconds: number): Promise<void> {
@@ -1059,11 +875,6 @@ function setBusy(isBusy: boolean): void {
   runPreviewButton.textContent = isBusy ? "추첨 실행 중..." : "추첨 실행";
 }
 
-function setRenderBusy(isBusy: boolean): void {
-  renderLatestButton.disabled = isBusy;
-  refreshRendersButton.disabled = isBusy;
-  renderLatestButton.textContent = isBusy ? "Rendering..." : "Render latest";
-}
 
 function setApiStatus(status: "checking" | "ready" | "error", message: string): void {
   apiStatus.className = `status ${status === "checking" ? "" : status}`;

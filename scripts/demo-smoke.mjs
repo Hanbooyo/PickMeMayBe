@@ -28,8 +28,8 @@ export async function runDemoSmoke({
       "PickMeMaybe Manual Preview",
       "Face resources",
       "Asset matches",
-      "Render outputs",
-      "Render job history",
+      "추첨 방송",
+      "연출 시간",
     ]) {
       if (!html.includes(marker)) {
         throw new Error(`Web page does not include marker: ${marker}`);
