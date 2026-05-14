@@ -885,7 +885,19 @@ function createModeResultMarkup(
         </div>
       `;
     case "rock-paper-scissors":
-      return `<div class="rps-result" aria-hidden="true">WIN</div>`;
+      return `
+        <div class="rps-result-board" aria-hidden="true">
+          <div class="rps-bracket">
+            <span class="rps-token left">✊</span>
+            <span class="rps-versus">VS</span>
+            <span class="rps-token right">✌</span>
+          </div>
+          <div class="rps-winner-line">
+            <span>✋</span>
+            <strong>WIN</strong>
+          </div>
+        </div>
+      `;
     case "random":
     case "dice-roll":
       return `
