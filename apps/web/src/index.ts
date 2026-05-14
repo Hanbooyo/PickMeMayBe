@@ -579,9 +579,12 @@ function renderSuspensePreview(
   participantCount: number,
   revealDurationMs: number,
 ): void {
-  const isRaceMode = presentationMode === "running-race";
   const modeLabel = formatPresentationMode(presentationMode);
-  const visual = createSuspenseVisual(presentationMode, participantCount);
+  const visual = createSuspenseVisual(
+    presentationMode,
+    participantCount,
+    revealDurationMs,
+  );
   const title = createSuspenseTitle(presentationMode);
   const subtitle = `${participantCount}명의 참가자 중 당첨자를 집계하고 있습니다.`;
 
@@ -600,20 +603,33 @@ function renderSuspensePreview(
 function createSuspenseVisual(
   presentationMode: BroadcastPresentationMode,
   participantCount: number,
+  revealDurationMs: number,
 ): string {
   switch (presentationMode) {
     case "running-race":
       return `
-        <div class="race-suspense" aria-hidden="true">
-          ${Array.from({ length: Math.min(3, Math.max(1, participantCount)) })
+        <div class="race-suspense" style="--race-build-duration: ${revealDurationMs}ms" aria-hidden="true">
+          <div class="race-suspense-board">
+            <span>START</span>
+            <strong>LAST 100M</strong>
+            <span>PHOTO FINISH</span>
+          </div>
+          ${Array.from({ length: Math.min(5, Math.max(3, participantCount)) })
             .map(
-              () => `
-                <div class="race-suspense-lane">
+              (_, index) => `
+                <div class="race-suspense-lane lane-${index + 1}">
+                  <span class="race-suspense-name">#${index + 1}</span>
                   <span class="race-suspense-runner"></span>
+                  <span class="race-suspense-ghost"></span>
                 </div>
               `,
             )
             .join("")}
+          <div class="race-suspense-ticker">
+            <span>LEAD CHANGE</span>
+            <span>NECK AND NECK</span>
+            <span>FINAL PUSH</span>
+          </div>
         </div>
       `;
     case "rock-paper-scissors":
@@ -796,6 +812,10 @@ function createRaceResultMarkup(
 
   return `
     <div class="race-result-board" aria-hidden="true">
+      <div class="race-final-banner">
+        <span>PHOTO FINISH</span>
+        <strong>${winnerCards.length} WINNER${winnerCards.length > 1 ? "S" : ""}</strong>
+      </div>
       <div class="race-result-track" style="--race-lanes: ${lanes.length}">
         ${lanes
           .map((card, index) => {
@@ -810,7 +830,10 @@ function createRaceResultMarkup(
                 class="race-result-runner ${isWinner ? "winner" : "challenger"}"
                 style="--race-top: ${index}; --race-to: ${finish}%; --race-duration: ${duration}ms; --race-delay: ${delay}ms"
                 title="${escapeHtml(card.name)}"
-              >${escapeHtml(label)}</span>
+              >
+                <span>${escapeHtml(label)}</span>
+                <em>${escapeHtml(card.name)}</em>
+              </span>
             `;
           })
           .join("")}
