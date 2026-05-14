@@ -617,6 +617,10 @@
         z-index: -1;
       }
 
+      .process-stage .vote-result-row strong::before {
+        animation-duration: calc(var(--process-duration, 10000ms) * 0.72);
+      }
+
       .race-result-board {
         width: min(92%, 680px);
         display: grid;
@@ -696,6 +700,13 @@
         background: #f8fafc;
         color: #008ccb;
         box-shadow: 0 0 0 5px rgba(202, 240, 248, 0.18);
+      }
+
+      .process-stage .process-runner {
+        animation-name: race-process-run;
+        animation-duration: calc(var(--process-duration, 10000ms) * 0.36);
+        animation-iteration-count: 2;
+        animation-direction: alternate;
       }
 
       .race-result-runner em {
@@ -918,6 +929,31 @@
         color: #008ccb;
       }
 
+      .process-stage .rps-match {
+        opacity: 0;
+        animation: rps-match-reveal 0.74s ease-out both;
+      }
+
+      .process-stage .rps-match:nth-child(1) {
+        animation-delay: 0.2s;
+      }
+
+      .process-stage .rps-match:nth-child(2) {
+        animation-delay: 1.2s;
+      }
+
+      .process-stage .rps-match:nth-child(3) {
+        animation-delay: 2.2s;
+      }
+
+      .process-stage .rps-match:nth-child(4) {
+        animation-delay: 3.2s;
+      }
+
+      .process-stage .rps-match:nth-child(n + 5) {
+        animation-delay: 4.2s;
+      }
+
       .rps-bracket {
         display: grid;
         grid-template-columns: 1fr auto 1fr;
@@ -1019,6 +1055,18 @@
         background: #f8fafc;
         color: #008ccb;
         font-style: normal;
+      }
+
+      .process-stage .dice-score-row i {
+        animation: dice-roll 0.52s infinite alternate ease-in-out;
+      }
+
+      .process-stage .dice-score-row:nth-child(2n) i {
+        animation-delay: 0.16s;
+      }
+
+      .process-stage .dice-score-row:nth-child(3n) i {
+        animation-delay: 0.32s;
       }
 
       .dice-result.main {
@@ -1344,6 +1392,40 @@
         }
       }
 
+      @keyframes race-process-run {
+        0% {
+          left: 8%;
+          transform: scale(0.9);
+        }
+        24% {
+          left: 58%;
+          transform: scale(1.05);
+        }
+        46% {
+          left: 36%;
+          transform: scale(0.96);
+        }
+        72% {
+          left: 76%;
+          transform: scale(1.1);
+        }
+        100% {
+          left: var(--race-to, 82%);
+          transform: scale(1);
+        }
+      }
+
+      @keyframes rps-match-reveal {
+        from {
+          opacity: 0;
+          transform: translateY(10px) scale(0.96);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
       @keyframes runner-ghost {
         0% {
           left: 16%;
@@ -1652,14 +1734,6 @@
                 <option value="vote-count">Vote count</option>
                 <option value="running-race">Running race</option>
                 <option value="ladder-game">Ladder game</option>
-              </select>
-            </label>
-            <label>
-              연출 시간
-              <select id="reveal-duration">
-                <option value="3000">3초</option>
-                <option value="4000" selected>4초</option>
-                <option value="5000">5초</option>
               </select>
             </label>
             <label class="checkbox-label">

@@ -29,7 +29,7 @@ export async function runDemoSmoke({
       "Face resources",
       "Asset matches",
       "추첨 방송",
-      "연출 시간",
+      "연출 모드",
     ]) {
       if (!html.includes(marker)) {
         throw new Error(`Web page does not include marker: ${marker}`);

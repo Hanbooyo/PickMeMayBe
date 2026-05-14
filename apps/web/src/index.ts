@@ -16,7 +16,7 @@ const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
 const historyEndpoint = "http://localhost:4317/api/history";
 const parseRosterFileEndpoint = "http://localhost:4317/api/parse-roster-file";
 const faceResourcesEndpoint = "http://localhost:4317/api/resources/faces";
-const defaultRevealDurationMs = 4000;
+const processAnimationDurationMs = 10000;
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -54,7 +54,6 @@ const inputPanel = getElement("panel-input");
 const drawPanel = getElement("panel-draw");
 const winnerCountInput = getElement("winner-count") as HTMLInputElement;
 const presentationModeInput = getElement("presentation-mode") as HTMLSelectElement;
-const revealDurationInput = getElement("reveal-duration") as HTMLSelectElement;
 const pasteRosterInput = getElement("paste-roster") as HTMLTextAreaElement;
 const rosterFileInput = getElement("roster-file") as HTMLInputElement;
 const allowPreviousWinnersInput = getElement(
@@ -161,13 +160,6 @@ async function runPreview(): Promise<void> {
     }
 
     const presentationMode = readPresentationMode();
-    const revealDurationMs = readRevealDurationMs();
-    const suspenseStartedAt = Date.now();
-    renderSuspensePreview(
-      presentationMode,
-      normalized.participants.length,
-      revealDurationMs,
-    );
     setActiveTab("draw");
 
     const response = await fetch(manualPreviewEndpoint, {
@@ -196,7 +188,8 @@ async function runPreview(): Promise<void> {
       throw new Error(formatApiError(payload));
     }
 
-    await delay(Math.max(0, revealDurationMs - (Date.now() - suspenseStartedAt)));
+    renderProcessPreview(payload.scenario, processAnimationDurationMs);
+    await delay(processAnimationDurationMs);
     renderPreview(payload.scenario);
     renderAssetMatches(payload.scenario.cards, payload.visualAssets);
     resultHistory = payload.history;
@@ -315,16 +308,6 @@ function readWinnerCount(): number {
   }
 
   return winnerCount;
-}
-
-function readRevealDurationMs(): number {
-  const durationMs = Number(revealDurationInput.value);
-
-  if ([3000, 4000, 5000].includes(durationMs)) {
-    return durationMs;
-  }
-
-  return defaultRevealDurationMs;
 }
 
 type BroadcastPresentationMode =
@@ -546,6 +529,31 @@ function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+function renderProcessPreview(
+  scenario: {
+    presentationMode?: BroadcastPresentationMode;
+    cards: BroadcastCard[];
+    winnerIds: string[];
+  },
+  durationMs: number,
+): void {
+  const winnerIdSet = new Set(scenario.winnerIds);
+  const winnerCards = scenario.cards.filter((card) =>
+    winnerIdSet.has(card.participantId),
+  );
+  const revealMode = scenario.presentationMode ?? "dice-roll";
+  const modeLabel = formatPresentationMode(revealMode);
+
+  preview.innerHTML = `
+    <div class="winner-only-stage process-stage reveal-${escapeHtml(revealMode)}" style="--process-duration: ${durationMs}ms">
+      <div class="mode-chip">${escapeHtml(modeLabel)}</div>
+      <div class="reveal-accent">LIVE PROCESS</div>
+      ${createProcessMarkup(revealMode, winnerCards, scenario.cards)}
+      <div class="suspense-subtitle">Generated raffle result is being revealed through the game flow.</div>
+    </div>
+  `;
+}
+
 function renderPreview(
   scenario: {
     presentationMode?: BroadcastPresentationMode;
@@ -692,6 +700,28 @@ function createRevealAccent(mode: BroadcastPresentationMode): string {
   }
 }
 
+function createProcessMarkup(
+  mode: BroadcastPresentationMode,
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+): string {
+  const rng = createRevealRng(winnerCards, cards);
+
+  switch (mode) {
+    case "running-race":
+      return createRaceProcessMarkup(winnerCards, cards, rng);
+    case "vote-count":
+      return createVoteResultMarkup(winnerCards, cards, rng);
+    case "rock-paper-scissors":
+      return createRpsResultMarkup(winnerCards, cards, rng);
+    case "ladder-game":
+      return createLadderResultMarkup(winnerCards, cards, rng);
+    case "random":
+    case "dice-roll":
+      return createDiceResultMarkup(winnerCards, cards, rng);
+  }
+}
+
 function createModeResultMarkup(
   mode: BroadcastPresentationMode,
   winnerCards: BroadcastCard[],
@@ -823,6 +853,46 @@ function createRaceResultMarkup(
                 title="${escapeHtml(card.name)}"
               >
                 <span>${escapeHtml(label)}</span>
+                <em>${escapeHtml(card.name)}</em>
+              </span>
+            `;
+          })
+          .join("")}
+        <strong>FINISH</strong>
+      </div>
+    </div>
+  `;
+}
+
+function createRaceProcessMarkup(
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+  rng: () => number,
+): string {
+  const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
+  const lanes = shuffleCards(cards, rng);
+
+  return `
+    <div class="race-result-board process-race-board" aria-hidden="true">
+      <div class="race-final-banner">
+        <span>LIVE RACE</span>
+        <strong>LEAD CHANGES</strong>
+      </div>
+      <div class="race-result-track" style="--race-lanes: ${lanes.length}">
+        ${lanes
+          .map((card, index) => {
+            const isWinner = winnerIdSet.has(card.participantId);
+            const finish = isWinner ? randomInt(rng, 84, 92) : randomInt(rng, 46, 78);
+            const duration = randomInt(rng, 2600, 4200);
+            const delay = randomInt(rng, 0, 1600);
+
+            return `
+              <span
+                class="race-result-runner ${isWinner ? "winner" : "challenger"} process-runner"
+                style="--race-top: ${index}; --race-to: ${finish}%; --race-duration: ${duration}ms; --race-delay: ${delay}ms"
+                title="${escapeHtml(card.name)}"
+              >
+                <span>${isWinner ? "W" : String(index + 1)}</span>
                 <em>${escapeHtml(card.name)}</em>
               </span>
             `;
