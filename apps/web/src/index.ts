@@ -871,12 +871,30 @@ function createModeResultMarkup(
         </div>
       `;
     case "ladder-game":
-      return `<div class="ladder-result" aria-hidden="true"><span></span><span></span><span></span></div>`;
+      return `
+        <div class="ladder-result-board" aria-hidden="true">
+          <div class="ladder-result-path">
+            <span class="ladder-vertical left"></span>
+            <span class="ladder-vertical center"></span>
+            <span class="ladder-vertical right"></span>
+            <span class="ladder-step one"></span>
+            <span class="ladder-step two"></span>
+            <span class="ladder-step three"></span>
+            <strong>도착</strong>
+          </div>
+        </div>
+      `;
     case "rock-paper-scissors":
       return `<div class="rps-result" aria-hidden="true">WIN</div>`;
     case "random":
     case "dice-roll":
-      return `<div class="dice-result" aria-hidden="true">6</div>`;
+      return `
+        <div class="dice-result-board" aria-hidden="true">
+          <span class="dice-result small">2</span>
+          <span class="dice-result main">6</span>
+          <span class="dice-result small">4</span>
+        </div>
+      `;
   }
 }
 

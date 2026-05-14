@@ -649,16 +649,77 @@
         animation: race-result-third 1s ease-out both;
       }
 
-      .ladder-result span {
-        width: 42px;
-        height: 42px;
-        border-radius: 999px;
-        background: rgba(202, 240, 248, 0.28);
+      .ladder-result-board {
+        width: min(84%, 420px);
+        padding: 16px;
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.12);
       }
 
-      .ladder-result {
-        display: flex;
-        gap: 10px;
+      .ladder-result-path {
+        position: relative;
+        height: 132px;
+      }
+
+      .ladder-vertical {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 5px;
+        border-radius: 999px;
+        background: rgba(202, 240, 248, 0.82);
+      }
+
+      .ladder-vertical.left {
+        left: 18%;
+      }
+
+      .ladder-vertical.center {
+        left: 50%;
+      }
+
+      .ladder-vertical.right {
+        left: 82%;
+      }
+
+      .ladder-step {
+        position: absolute;
+        height: 5px;
+        border-radius: 999px;
+        background: #caf0f8;
+        animation: ladder-result-trace 0.9s ease-out both;
+      }
+
+      .ladder-step.one {
+        top: 28px;
+        left: 18%;
+        width: 32%;
+      }
+
+      .ladder-step.two {
+        top: 64px;
+        left: 50%;
+        width: 32%;
+        animation-delay: 0.14s;
+      }
+
+      .ladder-step.three {
+        top: 100px;
+        left: 18%;
+        width: 64%;
+        animation-delay: 0.28s;
+      }
+
+      .ladder-result-path strong {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #008ccb;
+        font-size: 13px;
+        font-weight: 900;
       }
 
       .rps-result,
@@ -673,6 +734,26 @@
         font-size: 34px;
         font-weight: 900;
         box-shadow: 0 18px 34px rgba(2, 48, 71, 0.24);
+      }
+
+      .dice-result-board {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .dice-result.main {
+        width: 92px;
+        height: 92px;
+        font-size: 42px;
+        animation: dice-result-pop 0.7s ease-out both;
+      }
+
+      .dice-result.small {
+        width: 54px;
+        height: 54px;
+        font-size: 24px;
+        opacity: 0.72;
       }
 
       .winner-card {
@@ -961,6 +1042,29 @@
         }
         to {
           left: 54%;
+        }
+      }
+
+      @keyframes ladder-result-trace {
+        from {
+          transform: scaleX(0);
+          transform-origin: left center;
+        }
+        to {
+          transform: scaleX(1);
+          transform-origin: left center;
+        }
+      }
+
+      @keyframes dice-result-pop {
+        0% {
+          transform: rotate(-18deg) scale(0.72);
+        }
+        70% {
+          transform: rotate(8deg) scale(1.12);
+        }
+        100% {
+          transform: rotate(0deg) scale(1);
         }
       }
 
