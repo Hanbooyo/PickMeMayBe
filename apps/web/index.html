@@ -584,12 +584,71 @@
         z-index: -1;
       }
 
-      .finish-line {
-        display: flex;
-        gap: 8px;
+      .race-result-board {
+        width: min(88%, 560px);
+        padding: 16px;
+        border-radius: 30px;
+        background: rgba(255, 255, 255, 0.12);
       }
 
-      .finish-line span,
+      .race-result-track {
+        position: relative;
+        height: 96px;
+        border-radius: 24px;
+        background:
+          repeating-linear-gradient(
+            to bottom,
+            rgba(255, 255, 255, 0.14) 0,
+            rgba(255, 255, 255, 0.14) 1px,
+            transparent 1px,
+            transparent 32px
+          );
+        overflow: hidden;
+      }
+
+      .race-result-track strong {
+        position: absolute;
+        top: 0;
+        right: 18px;
+        bottom: 0;
+        display: grid;
+        place-items: center;
+        writing-mode: vertical-rl;
+        color: #caf0f8;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 2px;
+      }
+
+      .race-result-runner {
+        position: absolute;
+        left: 10%;
+        width: 28px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: rgba(202, 240, 248, 0.34);
+        color: #f8fafc;
+        font-size: 13px;
+        font-weight: 900;
+      }
+
+      .race-result-runner.first {
+        top: 10px;
+        animation: race-result-first 1s ease-out both;
+      }
+
+      .race-result-runner.second {
+        top: 38px;
+        animation: race-result-second 1s ease-out both;
+      }
+
+      .race-result-runner.third {
+        top: 66px;
+        animation: race-result-third 1s ease-out both;
+      }
+
       .ladder-result span {
         width: 42px;
         height: 42px;
@@ -875,6 +934,33 @@
         to {
           transform: scaleX(1);
           transform-origin: left center;
+        }
+      }
+
+      @keyframes race-result-first {
+        from {
+          left: 10%;
+        }
+        to {
+          left: 82%;
+        }
+      }
+
+      @keyframes race-result-second {
+        from {
+          left: 10%;
+        }
+        to {
+          left: 68%;
+        }
+      }
+
+      @keyframes race-result-third {
+        from {
+          left: 10%;
+        }
+        to {
+          left: 54%;
         }
       }
 

@@ -860,7 +860,16 @@ function createModeResultMarkup(
         </div>
       `;
     case "running-race":
-      return `<div class="finish-line" aria-hidden="true"><span></span><span></span><span></span></div>`;
+      return `
+        <div class="race-result-board" aria-hidden="true">
+          <div class="race-result-track">
+            <span class="race-result-runner third">3</span>
+            <span class="race-result-runner second">2</span>
+            <span class="race-result-runner first">1</span>
+            <strong>FINISH</strong>
+          </div>
+        </div>
+      `;
     case "ladder-game":
       return `<div class="ladder-result" aria-hidden="true"><span></span><span></span><span></span></div>`;
     case "rock-paper-scissors":
