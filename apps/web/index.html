@@ -537,6 +537,85 @@
         font-weight: 900;
       }
 
+      .vote-result-board {
+        width: min(86%, 520px);
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .vote-result-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        align-items: center;
+        gap: 10px;
+        color: #caf0f8;
+        font-size: 13px;
+        font-weight: 900;
+        text-align: left;
+      }
+
+      .vote-result-row strong {
+        position: relative;
+        display: block;
+        height: 18px;
+        border-radius: 999px;
+        overflow: hidden;
+        isolation: isolate;
+        color: #f8fafc;
+        font-size: 11px;
+        line-height: 18px;
+        padding-right: 8px;
+        text-align: right;
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      .vote-result-row strong::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: var(--vote-width);
+        border-radius: inherit;
+        background: linear-gradient(90deg, #caf0f8, #00b4d8);
+        animation: result-vote-fill 0.9s ease-out both;
+        z-index: -1;
+      }
+
+      .finish-line {
+        display: flex;
+        gap: 8px;
+      }
+
+      .finish-line span,
+      .ladder-result span {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        background: rgba(202, 240, 248, 0.28);
+      }
+
+      .ladder-result {
+        display: flex;
+        gap: 10px;
+      }
+
+      .rps-result,
+      .dice-result {
+        width: 82px;
+        height: 82px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #008ccb;
+        font-size: 34px;
+        font-weight: 900;
+        box-shadow: 0 18px 34px rgba(2, 48, 71, 0.24);
+      }
+
       .winner-card {
         width: min(190px, 42%);
         min-width: 148px;
@@ -785,6 +864,17 @@
         to {
           opacity: 1;
           transform: translateX(8px);
+        }
+      }
+
+      @keyframes result-vote-fill {
+        from {
+          transform: scaleX(0);
+          transform-origin: left center;
+        }
+        to {
+          transform: scaleX(1);
+          transform-origin: left center;
         }
       }
 

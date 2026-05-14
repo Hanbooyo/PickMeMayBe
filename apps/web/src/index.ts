@@ -733,6 +733,7 @@ function renderPreview(
     <div class="winner-only-stage reveal-${escapeHtml(revealMode)}">
       <div class="mode-chip">${escapeHtml(modeLabel)}</div>
       ${createRevealAccent(revealMode)}
+      ${createModeResultMarkup(revealMode, winnerCards.length)}
       <div class="winner-label">당첨 인원 ${winnerCards.length}명</div>
       <div class="winner-grid">
         ${winnerCards.map((card) => createWinnerMarkup(card)).join("")}
@@ -833,6 +834,40 @@ function createRevealAccent(mode: BroadcastPresentationMode): string {
     case "random":
     case "dice-roll":
       return `<div class="reveal-accent">주사위 결과 확정</div>`;
+  }
+}
+
+function createModeResultMarkup(
+  mode: BroadcastPresentationMode,
+  winnerCount: number,
+): string {
+  switch (mode) {
+    case "vote-count":
+      return `
+        <div class="vote-result-board" aria-hidden="true">
+          <div class="vote-result-row">
+            <span>초반 집계</span>
+            <strong style="--vote-width: 48%">48%</strong>
+          </div>
+          <div class="vote-result-row">
+            <span>개표 진행</span>
+            <strong style="--vote-width: 73%">73%</strong>
+          </div>
+          <div class="vote-result-row winner">
+            <span>최종 확정</span>
+            <strong style="--vote-width: 100%">${winnerCount}명</strong>
+          </div>
+        </div>
+      `;
+    case "running-race":
+      return `<div class="finish-line" aria-hidden="true"><span></span><span></span><span></span></div>`;
+    case "ladder-game":
+      return `<div class="ladder-result" aria-hidden="true"><span></span><span></span><span></span></div>`;
+    case "rock-paper-scissors":
+      return `<div class="rps-result" aria-hidden="true">WIN</div>`;
+    case "random":
+    case "dice-roll":
+      return `<div class="dice-result" aria-hidden="true">6</div>`;
   }
 }
 
