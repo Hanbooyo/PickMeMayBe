@@ -336,20 +336,26 @@ type BroadcastPresentationMode =
   | "ladder-game";
 
 function readPresentationMode(): BroadcastPresentationMode {
-  const modes = new Set<BroadcastPresentationMode>([
-    "random",
+  const concreteModes: Array<Exclude<BroadcastPresentationMode, "random">> = [
     "dice-roll",
     "rock-paper-scissors",
     "vote-count",
     "running-race",
     "ladder-game",
-  ]);
+  ];
+  const modes = new Set<BroadcastPresentationMode>(["random", ...concreteModes]);
 
   if (modes.has(presentationModeInput.value as BroadcastPresentationMode)) {
-    return presentationModeInput.value as BroadcastPresentationMode;
+    const selectedMode = presentationModeInput.value as BroadcastPresentationMode;
+
+    if (selectedMode === "random") {
+      return concreteModes[randomIntFromCrypto() % concreteModes.length];
+    }
+
+    return selectedMode;
   }
 
-  return "random";
+  return concreteModes[randomIntFromCrypto() % concreteModes.length];
 }
 
 async function checkApiStatus(): Promise<void> {
@@ -614,7 +620,7 @@ function createSuspenseVisual(
             <strong>LAST 100M</strong>
             <span>PHOTO FINISH</span>
           </div>
-          ${Array.from({ length: Math.min(5, Math.max(3, participantCount)) })
+          ${Array.from({ length: Math.max(1, participantCount) })
             .map(
               (_, index) => `
                 <div class="race-suspense-lane lane-${index + 1}">
@@ -692,97 +698,19 @@ function createModeResultMarkup(
   cards: BroadcastCard[],
 ): string {
   const rng = createRevealRng(winnerCards, cards);
-  const winnerCount = winnerCards.length;
 
   switch (mode) {
-    case "vote-count": {
-      const first = randomInt(rng, 38, 58);
-      const second = randomInt(rng, 62, 86);
-      const final = randomInt(rng, 91, 100);
-
-      return `
-        <div class="vote-result-board" aria-hidden="true">
-          <div class="vote-result-row">
-            <span>ROUND 1</span>
-            <strong style="--vote-width: ${first}%">${first}%</strong>
-          </div>
-          <div class="vote-result-row">
-            <span>COUNTING</span>
-            <strong style="--vote-width: ${second}%">${second}%</strong>
-          </div>
-          <div class="vote-result-row winner">
-            <span>FINAL</span>
-            <strong style="--vote-width: ${final}%">${winnerCount} WIN</strong>
-          </div>
-        </div>
-      `;
-    }
+    case "vote-count":
+      return createVoteResultMarkup(winnerCards, cards, rng);
     case "running-race":
       return createRaceResultMarkup(winnerCards, cards, rng);
-    case "ladder-game": {
-      const steps = Array.from({ length: 4 }, (_, index) => {
-        const top = 18 + index * 27 + randomInt(rng, -4, 4);
-        const left = randomInt(rng, 14, 52);
-        const width = randomInt(rng, 28, 58);
-
-        return `<span class="ladder-step" style="top: ${top}px; left: ${left}%; width: ${width}%; animation-delay: ${index * 0.12}s"></span>`;
-      }).join("");
-
-      return `
-        <div class="ladder-result-board" aria-hidden="true">
-          <div class="ladder-result-path">
-            <span class="ladder-vertical left"></span>
-            <span class="ladder-vertical center"></span>
-            <span class="ladder-vertical right"></span>
-            ${steps}
-            <strong>WIN ${winnerCount}</strong>
-          </div>
-        </div>
-      `;
-    }
-    case "rock-paper-scissors": {
-      const hands = [
-        { label: "R", beats: "S" },
-        { label: "P", beats: "R" },
-        { label: "S", beats: "P" },
-      ];
-      const winnerHand = hands[randomInt(rng, 0, hands.length - 1)];
-      const loserHand = hands.find((hand) => hand.label === winnerHand.beats) ?? hands[0];
-
-      return `
-        <div class="rps-result-board" aria-hidden="true">
-          <div class="rps-bracket">
-            <span class="rps-token left">${escapeHtml(loserHand.label)}</span>
-            <span class="rps-versus">VS</span>
-            <span class="rps-token right">${escapeHtml(winnerHand.label)}</span>
-          </div>
-          <div class="rps-winner-line">
-            <span>${escapeHtml(winnerHand.label)}</span>
-            <strong>WIN</strong>
-          </div>
-        </div>
-      `;
-    }
+    case "ladder-game":
+      return createLadderResultMarkup(winnerCards, cards, rng);
+    case "rock-paper-scissors":
+      return createRpsResultMarkup(winnerCards, cards, rng);
     case "random":
-    case "dice-roll": {
-      const dice = [
-        randomInt(rng, 1, 6),
-        randomInt(rng, 1, 6),
-        randomInt(rng, 1, 6),
-      ];
-      const mainIndex = randomInt(rng, 0, dice.length - 1);
-
-      return `
-        <div class="dice-result-board" aria-hidden="true">
-          ${dice
-            .map(
-              (value, index) =>
-                `<span class="dice-result ${index === mainIndex ? "main" : "small"}">${value}</span>`,
-            )
-            .join("")}
-        </div>
-      `;
-    }
+    case "dice-roll":
+      return createDiceResultMarkup(winnerCards, cards, rng);
   }
 }
 
@@ -795,16 +723,79 @@ type BroadcastCard = {
   isWinner: boolean;
 };
 
+function createVoteResultMarkup(
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+  rng: () => number,
+): string {
+  const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
+  const rows = allocateVoteShares(cards, winnerIdSet, rng);
+  const total = rows.reduce((sum, row) => sum + row.percent, 0);
+
+  return `
+    <div class="vote-result-board election-board" aria-hidden="true">
+      <div class="election-board-header">
+        <span>COUNTED 100%</span>
+        <strong>TOTAL ${total}%</strong>
+      </div>
+      <div class="vote-result-list">
+        ${rows
+          .map(
+            (row, index) => `
+              <div class="vote-result-row ${winnerIdSet.has(row.card.participantId) ? "winner" : ""}">
+                <span>${index + 1}. ${escapeHtml(row.card.name)}</span>
+                <strong style="--vote-width: ${row.percent}%">${row.percent}%</strong>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function allocateVoteShares(
+  cards: BroadcastCard[],
+  winnerIdSet: Set<string>,
+  rng: () => number,
+): Array<{ card: BroadcastCard; percent: number }> {
+  if (cards.length === 0) {
+    return [];
+  }
+
+  const weighted = cards.map((card) => ({
+    card,
+    weight: winnerIdSet.has(card.participantId)
+      ? randomInt(rng, 34, 56)
+      : randomInt(rng, 8, 28),
+  }));
+  const weightTotal = weighted.reduce((sum, row) => sum + row.weight, 0);
+  let remaining = 100;
+  const rows = weighted.map((row, index) => {
+    const isLast = index === weighted.length - 1;
+    const percent = isLast
+      ? remaining
+      : Math.max(1, Math.round((row.weight / weightTotal) * 100));
+    remaining -= percent;
+    return { card: row.card, percent };
+  });
+
+  while (remaining !== 0) {
+    const target = rows.find((row) => row.percent + Math.sign(remaining) > 0) ?? rows[0];
+    target.percent += Math.sign(remaining);
+    remaining -= Math.sign(remaining);
+  }
+
+  return rows.sort((left, right) => right.percent - left.percent);
+}
+
 function createRaceResultMarkup(
   winnerCards: BroadcastCard[],
   cards: BroadcastCard[],
   rng: () => number,
 ): string {
   const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
-  const competitors = shuffleCards(cards, rng)
-    .filter((card) => !winnerIdSet.has(card.participantId))
-    .slice(0, Math.max(2, Math.min(4, cards.length - winnerCards.length)));
-  const lanes = shuffleCards([...winnerCards, ...competitors], rng).slice(0, 6);
+  const lanes = shuffleCards(cards, rng);
 
   if (lanes.length === 0) {
     return "";
@@ -820,9 +811,9 @@ function createRaceResultMarkup(
         ${lanes
           .map((card, index) => {
             const isWinner = winnerIdSet.has(card.participantId);
-            const finish = isWinner ? randomInt(rng, 82, 90) : randomInt(rng, 46, 76);
-            const duration = randomInt(rng, 1200, 1900);
-            const delay = randomInt(rng, 0, 320);
+            const finish = isWinner ? randomInt(rng, 82, 91) : randomInt(rng, 34, 76);
+            const duration = randomInt(rng, 1350, 2300);
+            const delay = randomInt(rng, 0, 420);
             const label = isWinner ? "W" : String(index + 1);
 
             return `
@@ -838,6 +829,144 @@ function createRaceResultMarkup(
           })
           .join("")}
         <strong>FINISH</strong>
+      </div>
+    </div>
+  `;
+}
+
+function createRpsResultMarkup(
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+  rng: () => number,
+): string {
+  const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
+  const hands = ["R", "P", "S"];
+  const bracket = shuffleCards(cards, rng);
+  const matches = [];
+
+  for (let index = 0; index < bracket.length; index += 2) {
+    const left = bracket[index];
+    const right = bracket[index + 1];
+    const leftHand = hands[randomInt(rng, 0, hands.length - 1)];
+    const rightHand = hands[randomInt(rng, 0, hands.length - 1)];
+    const winner = right
+      ? winnerIdSet.has(left.participantId)
+        ? left
+        : winnerIdSet.has(right.participantId)
+          ? right
+          : rng() > 0.5
+            ? left
+            : right
+      : left;
+
+    matches.push({ left, right, leftHand, rightHand, winner });
+  }
+
+  return `
+    <div class="rps-result-board rps-bracket-board" aria-hidden="true">
+      <div class="election-board-header">
+        <span>TOURNAMENT</span>
+        <strong>FINAL ${winnerCards.length}</strong>
+      </div>
+      <div class="rps-match-list">
+        ${matches
+          .map(
+            (match, index) => `
+              <div class="rps-match">
+                <span class="rps-player ${match.winner.participantId === match.left.participantId ? "winner" : ""}">
+                  ${escapeHtml(match.left.name)} <b>${match.leftHand}</b>
+                </span>
+                <em>VS</em>
+                <span class="rps-player ${match.right && match.winner.participantId === match.right.participantId ? "winner" : ""}">
+                  ${match.right ? escapeHtml(match.right.name) : "BYE"} <b>${match.right ? match.rightHand : "-"}</b>
+                </span>
+                <strong>R${index + 1}</strong>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function createDiceResultMarkup(
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+  rng: () => number,
+): string {
+  const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
+  const rolls = shuffleCards(cards, rng)
+    .map((card) => {
+      const dice = [randomInt(rng, 1, 6), randomInt(rng, 1, 6), randomInt(rng, 1, 6)];
+      const bonus = winnerIdSet.has(card.participantId) ? randomInt(rng, 4, 9) : 0;
+      return { card, dice, total: dice.reduce((sum, value) => sum + value, 0) + bonus };
+    })
+    .sort((left, right) => right.total - left.total);
+
+  return `
+    <div class="dice-result-board dice-score-board" aria-hidden="true">
+      ${rolls
+        .map(
+          (roll, index) => `
+            <div class="dice-score-row ${winnerIdSet.has(roll.card.participantId) ? "winner" : ""}">
+              <span>${index + 1}. ${escapeHtml(roll.card.name)}</span>
+              <strong>${roll.dice.map((value) => "<i>" + value + "</i>").join("")}</strong>
+              <em>${roll.total}</em>
+            </div>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function createLadderResultMarkup(
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+  rng: () => number,
+): string {
+  const columns = cards.length;
+  const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
+  const nameRow = cards
+    .map((card) => `<span>${escapeHtml(card.name)}</span>`)
+    .join("");
+  const rails = cards
+    .map(
+      (_, index) =>
+        `<span class="ladder-rail" style="--col: ${index}"></span>`,
+    )
+    .join("");
+  const steps = Array.from({ length: Math.max(columns + 2, 4) }, (_, index) => {
+    const leftColumn = randomInt(rng, 0, Math.max(columns - 2, 0));
+    const top = 20 + index * 22;
+    return { leftColumn, top };
+  });
+  const rungs = steps
+    .map(
+      (step, index) =>
+        `<span class="ladder-rung" style="--left-col: ${step.leftColumn}; --rung-top: ${step.top}px; animation-delay: ${index * 0.08}s"></span>`,
+    )
+    .join("");
+  const resultRow = cards
+    .map((card) => {
+      const isWinner = winnerIdSet.has(card.participantId);
+      return `<span class="${isWinner ? "winner" : ""}">${isWinner ? "WIN" : "-"}</span>`;
+    })
+    .join("");
+  const height = Math.max(136, 54 + steps.length * 22);
+
+  return `
+    <div class="ladder-result-board real-ladder-board" style="--ladder-columns: ${columns}; --ladder-height: ${height}px" aria-hidden="true">
+      <div class="ladder-name-row">
+        ${nameRow}
+      </div>
+      <div class="ladder-grid">
+        ${rails}
+        ${rungs}
+      </div>
+      <div class="ladder-result-row">
+        ${resultRow}
       </div>
     </div>
   `;
