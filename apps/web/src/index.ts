@@ -21,7 +21,7 @@ const renderLatestJobsEndpoint = "http://localhost:4317/api/render-latest-jobs";
 const renderJobsEndpoint = "http://localhost:4317/api/render-jobs";
 const renderJobPollIntervalMs = 1200;
 const renderJobMaxPolls = 150;
-const minimumSuspenseMs = 1800;
+const minimumSuspenseMs = 3800;
 let inputs: ManualParticipantInput[] = [
   {
     name: "김민수",
@@ -182,6 +182,7 @@ async function runPreview(): Promise<void> {
     const presentationMode = readPresentationMode();
     const suspenseStartedAt = Date.now();
     renderSuspensePreview(presentationMode, normalized.participants.length);
+    setActiveTab("draw");
 
     const response = await fetch(manualPreviewEndpoint, {
       method: "POST",
@@ -211,7 +212,6 @@ async function runPreview(): Promise<void> {
 
     await delay(Math.max(0, minimumSuspenseMs - (Date.now() - suspenseStartedAt)));
     renderPreview(payload.scenario);
-    setActiveTab("draw");
     renderAssetMatches(payload.scenario.cards, payload.visualAssets);
     resultHistory = payload.history;
     renderHistory();
