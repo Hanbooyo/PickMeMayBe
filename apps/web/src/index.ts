@@ -565,7 +565,7 @@ function renderPreview(
     <div class="winner-only-stage reveal-${escapeHtml(revealMode)}">
       <div class="mode-chip">${escapeHtml(modeLabel)}</div>
       ${createRevealAccent(revealMode)}
-      ${createModeResultMarkup(revealMode, winnerCards.length)}
+      ${createModeResultMarkup(revealMode, winnerCards, scenario.cards)}
       <div class="winner-label">당첨 인원 ${winnerCards.length}명</div>
       <div class="winner-grid">
         ${winnerCards.map((card) => createWinnerMarkup(card)).join("")}
@@ -672,75 +672,202 @@ function createRevealAccent(mode: BroadcastPresentationMode): string {
 
 function createModeResultMarkup(
   mode: BroadcastPresentationMode,
-  winnerCount: number,
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
 ): string {
+  const rng = createRevealRng(winnerCards, cards);
+  const winnerCount = winnerCards.length;
+
   switch (mode) {
-    case "vote-count":
+    case "vote-count": {
+      const first = randomInt(rng, 38, 58);
+      const second = randomInt(rng, 62, 86);
+      const final = randomInt(rng, 91, 100);
+
       return `
         <div class="vote-result-board" aria-hidden="true">
           <div class="vote-result-row">
-            <span>초반 집계</span>
-            <strong style="--vote-width: 48%">48%</strong>
+            <span>ROUND 1</span>
+            <strong style="--vote-width: ${first}%">${first}%</strong>
           </div>
           <div class="vote-result-row">
-            <span>개표 진행</span>
-            <strong style="--vote-width: 73%">73%</strong>
+            <span>COUNTING</span>
+            <strong style="--vote-width: ${second}%">${second}%</strong>
           </div>
           <div class="vote-result-row winner">
-            <span>최종 확정</span>
-            <strong style="--vote-width: 100%">${winnerCount}명</strong>
+            <span>FINAL</span>
+            <strong style="--vote-width: ${final}%">${winnerCount} WIN</strong>
           </div>
         </div>
       `;
+    }
     case "running-race":
-      return `
-        <div class="race-result-board" aria-hidden="true">
-          <div class="race-result-track">
-            <span class="race-result-runner third">3</span>
-            <span class="race-result-runner second">2</span>
-            <span class="race-result-runner first">1</span>
-            <strong>FINISH</strong>
-          </div>
-        </div>
-      `;
-    case "ladder-game":
+      return createRaceResultMarkup(winnerCards, cards, rng);
+    case "ladder-game": {
+      const steps = Array.from({ length: 4 }, (_, index) => {
+        const top = 18 + index * 27 + randomInt(rng, -4, 4);
+        const left = randomInt(rng, 14, 52);
+        const width = randomInt(rng, 28, 58);
+
+        return `<span class="ladder-step" style="top: ${top}px; left: ${left}%; width: ${width}%; animation-delay: ${index * 0.12}s"></span>`;
+      }).join("");
+
       return `
         <div class="ladder-result-board" aria-hidden="true">
           <div class="ladder-result-path">
             <span class="ladder-vertical left"></span>
             <span class="ladder-vertical center"></span>
             <span class="ladder-vertical right"></span>
-            <span class="ladder-step one"></span>
-            <span class="ladder-step two"></span>
-            <span class="ladder-step three"></span>
-            <strong>도착</strong>
+            ${steps}
+            <strong>WIN ${winnerCount}</strong>
           </div>
         </div>
       `;
-    case "rock-paper-scissors":
+    }
+    case "rock-paper-scissors": {
+      const hands = [
+        { label: "R", beats: "S" },
+        { label: "P", beats: "R" },
+        { label: "S", beats: "P" },
+      ];
+      const winnerHand = hands[randomInt(rng, 0, hands.length - 1)];
+      const loserHand = hands.find((hand) => hand.label === winnerHand.beats) ?? hands[0];
+
       return `
         <div class="rps-result-board" aria-hidden="true">
           <div class="rps-bracket">
-            <span class="rps-token left">✊</span>
+            <span class="rps-token left">${escapeHtml(loserHand.label)}</span>
             <span class="rps-versus">VS</span>
-            <span class="rps-token right">✌</span>
+            <span class="rps-token right">${escapeHtml(winnerHand.label)}</span>
           </div>
           <div class="rps-winner-line">
-            <span>✋</span>
+            <span>${escapeHtml(winnerHand.label)}</span>
             <strong>WIN</strong>
           </div>
         </div>
       `;
+    }
     case "random":
-    case "dice-roll":
+    case "dice-roll": {
+      const dice = [
+        randomInt(rng, 1, 6),
+        randomInt(rng, 1, 6),
+        randomInt(rng, 1, 6),
+      ];
+      const mainIndex = randomInt(rng, 0, dice.length - 1);
+
       return `
         <div class="dice-result-board" aria-hidden="true">
-          <span class="dice-result small">2</span>
-          <span class="dice-result main">6</span>
-          <span class="dice-result small">4</span>
+          ${dice
+            .map(
+              (value, index) =>
+                `<span class="dice-result ${index === mainIndex ? "main" : "small"}">${value}</span>`,
+            )
+            .join("")}
         </div>
       `;
+    }
   }
+}
+
+type BroadcastCard = {
+  participantId: string;
+  name: string;
+  department?: string;
+  appliedAsset?: string;
+  imagePath: string;
+  isWinner: boolean;
+};
+
+function createRaceResultMarkup(
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+  rng: () => number,
+): string {
+  const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
+  const competitors = shuffleCards(cards, rng)
+    .filter((card) => !winnerIdSet.has(card.participantId))
+    .slice(0, Math.max(2, Math.min(4, cards.length - winnerCards.length)));
+  const lanes = shuffleCards([...winnerCards, ...competitors], rng).slice(0, 6);
+
+  if (lanes.length === 0) {
+    return "";
+  }
+
+  return `
+    <div class="race-result-board" aria-hidden="true">
+      <div class="race-result-track" style="--race-lanes: ${lanes.length}">
+        ${lanes
+          .map((card, index) => {
+            const isWinner = winnerIdSet.has(card.participantId);
+            const finish = isWinner ? randomInt(rng, 82, 90) : randomInt(rng, 46, 76);
+            const duration = randomInt(rng, 1200, 1900);
+            const delay = randomInt(rng, 0, 320);
+            const label = isWinner ? "W" : String(index + 1);
+
+            return `
+              <span
+                class="race-result-runner ${isWinner ? "winner" : "challenger"}"
+                style="--race-top: ${index}; --race-to: ${finish}%; --race-duration: ${duration}ms; --race-delay: ${delay}ms"
+                title="${escapeHtml(card.name)}"
+              >${escapeHtml(label)}</span>
+            `;
+          })
+          .join("")}
+        <strong>FINISH</strong>
+      </div>
+    </div>
+  `;
+}
+
+function createRevealRng(
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+): () => number {
+  const seed = [
+    Date.now(),
+    randomIntFromCrypto(),
+    ...winnerCards.map((card) => card.participantId),
+    cards.length,
+  ].join("|");
+  let state = hashString(seed);
+
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
+
+function hashString(value: string): number {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function randomIntFromCrypto(): number {
+  const values = new Uint32Array(1);
+  globalThis.crypto?.getRandomValues(values);
+  return values[0] ?? Math.floor(Math.random() * 0xffffffff);
+}
+
+function randomInt(rng: () => number, min: number, max: number): number {
+  return Math.floor(rng() * (max - min + 1)) + min;
+}
+
+function shuffleCards<T>(cards: T[], rng: () => number): T[] {
+  const shuffled = [...cards];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(rng, 0, index);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
 }
 
 function createWinnerMarkup(card: {

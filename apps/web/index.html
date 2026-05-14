@@ -596,7 +596,7 @@
 
       .race-result-track {
         position: relative;
-        height: 96px;
+        height: calc((var(--race-lanes, 3) * 32px) + 12px);
         border-radius: 24px;
         background:
           repeating-linear-gradient(
@@ -626,6 +626,7 @@
       .race-result-runner {
         position: absolute;
         left: 10%;
+        top: calc((var(--race-top, 0) * 32px) + 4px);
         width: 28px;
         height: 28px;
         display: grid;
@@ -635,21 +636,13 @@
         color: #f8fafc;
         font-size: 13px;
         font-weight: 900;
+        animation: race-result-run var(--race-duration, 1.45s) var(--race-delay, 0ms) cubic-bezier(0.18, 0.84, 0.28, 1) both;
       }
 
-      .race-result-runner.first {
-        top: 10px;
-        animation: race-result-first 1s ease-out both;
-      }
-
-      .race-result-runner.second {
-        top: 38px;
-        animation: race-result-second 1s ease-out both;
-      }
-
-      .race-result-runner.third {
-        top: 66px;
-        animation: race-result-third 1s ease-out both;
+      .race-result-runner.winner {
+        background: #f8fafc;
+        color: #008ccb;
+        box-shadow: 0 0 0 5px rgba(202, 240, 248, 0.18);
       }
 
       .ladder-result-board {
@@ -1077,30 +1070,17 @@
         }
       }
 
-      @keyframes race-result-first {
+      @keyframes race-result-run {
         from {
           left: 10%;
+          transform: scale(0.88);
+        }
+        62% {
+          transform: scale(1.08);
         }
         to {
-          left: 82%;
-        }
-      }
-
-      @keyframes race-result-second {
-        from {
-          left: 10%;
-        }
-        to {
-          left: 68%;
-        }
-      }
-
-      @keyframes race-result-third {
-        from {
-          left: 10%;
-        }
-        to {
-          left: 54%;
+          left: var(--race-to, 72%);
+          transform: scale(1);
         }
       }
 
