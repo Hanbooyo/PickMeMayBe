@@ -1057,16 +1057,13 @@
         font-style: normal;
       }
 
-      .process-stage .dice-score-row i {
-        animation: dice-roll 0.52s infinite alternate ease-in-out;
+      .dice-score-row i.pending {
+        color: rgba(0, 140, 203, 0.54);
+        background: rgba(248, 250, 252, 0.54);
       }
 
-      .process-stage .dice-score-row:nth-child(2n) i {
-        animation-delay: 0.16s;
-      }
-
-      .process-stage .dice-score-row:nth-child(3n) i {
-        animation-delay: 0.32s;
+      .dice-score-row i.rolling {
+        animation: dice-roll 0.18s infinite alternate ease-in-out;
       }
 
       .dice-result.main {

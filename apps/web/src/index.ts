@@ -552,6 +552,7 @@ function renderProcessPreview(
       <div class="suspense-subtitle">Generated raffle result is being revealed through the game flow.</div>
     </div>
   `;
+  startProcessAnimation(revealMode);
 }
 
 function renderPreview(
@@ -711,14 +712,14 @@ function createProcessMarkup(
     case "running-race":
       return createRaceProcessMarkup(winnerCards, cards, rng);
     case "vote-count":
-      return createVoteResultMarkup(winnerCards, cards, rng);
+      return createVoteResultMarkup(winnerCards, cards, rng, true);
     case "rock-paper-scissors":
       return createRpsResultMarkup(winnerCards, cards, rng);
     case "ladder-game":
       return createLadderResultMarkup(winnerCards, cards, rng);
     case "random":
     case "dice-roll":
-      return createDiceResultMarkup(winnerCards, cards, rng);
+      return createDiceResultMarkup(winnerCards, cards, rng, true);
   }
 }
 
@@ -757,16 +758,17 @@ function createVoteResultMarkup(
   winnerCards: BroadcastCard[],
   cards: BroadcastCard[],
   rng: () => number,
+  isProcess = false,
 ): string {
   const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
   const rows = allocateVoteShares(cards, winnerIdSet, rng);
   const total = rows.reduce((sum, row) => sum + row.percent, 0);
 
   return `
-    <div class="vote-result-board election-board" aria-hidden="true">
+    <div class="vote-result-board election-board ${isProcess ? "vote-counting-board" : ""}" aria-hidden="true">
       <div class="election-board-header">
-        <span>COUNTED 100%</span>
-        <strong>TOTAL ${total}%</strong>
+        <span>${isProcess ? "COUNTING LIVE" : "COUNTED 100%"}</span>
+        <strong ${isProcess ? `data-vote-total="${total}"` : ""}>TOTAL ${isProcess ? 0 : total}%</strong>
       </div>
       <div class="vote-result-list">
         ${rows
@@ -774,7 +776,7 @@ function createVoteResultMarkup(
             (row, index) => `
               <div class="vote-result-row ${winnerIdSet.has(row.card.participantId) ? "winner" : ""}">
                 <span>${index + 1}. ${escapeHtml(row.card.name)}</span>
-                <strong style="--vote-width: ${row.percent}%">${row.percent}%</strong>
+                <strong style="--vote-width: ${isProcess ? 0 : row.percent}%" ${isProcess ? `data-final-percent="${row.percent}"` : ""}>${isProcess ? 0 : row.percent}%</strong>
               </div>
             `,
           )
@@ -964,6 +966,7 @@ function createDiceResultMarkup(
   winnerCards: BroadcastCard[],
   cards: BroadcastCard[],
   rng: () => number,
+  isProcess = false,
 ): string {
   const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
   const rolls = shuffleCards(cards, rng)
@@ -975,14 +978,14 @@ function createDiceResultMarkup(
     .sort((left, right) => right.total - left.total);
 
   return `
-    <div class="dice-result-board dice-score-board" aria-hidden="true">
+    <div class="dice-result-board dice-score-board ${isProcess ? "dice-process-board" : ""}" aria-hidden="true">
       ${rolls
         .map(
           (roll, index) => `
-            <div class="dice-score-row ${winnerIdSet.has(roll.card.participantId) ? "winner" : ""}">
+            <div class="dice-score-row ${!isProcess && winnerIdSet.has(roll.card.participantId) ? "winner" : ""}" ${isProcess && winnerIdSet.has(roll.card.participantId) ? "data-winner-row=\"true\"" : ""}>
               <span>${index + 1}. ${escapeHtml(roll.card.name)}</span>
-              <strong>${roll.dice.map((value) => "<i>" + value + "</i>").join("")}</strong>
-              <em>${roll.total}</em>
+              <strong>${roll.dice.map((value, turnIndex) => `<i class="${isProcess ? "pending" : ""}" data-turn="${turnIndex}" data-value="${value}">${isProcess ? "?" : value}</i>`).join("")}</strong>
+              <em data-total="${roll.total}">${isProcess ? 0 : roll.total}</em>
             </div>
           `,
         )
@@ -1108,6 +1111,106 @@ function createWinnerMarkup(card: {
       <div class="winner-meta">${escapeHtml(meta)}</div>
     </article>
   `;
+}
+
+function startProcessAnimation(mode: BroadcastPresentationMode): void {
+  if (mode === "vote-count") {
+    startVoteCountAnimation();
+    return;
+  }
+
+  if (mode === "dice-roll") {
+    startDiceTurnAnimation();
+  }
+}
+
+function startVoteCountAnimation(): void {
+  const board = preview.querySelector(".vote-counting-board");
+
+  if (!board) {
+    return;
+  }
+
+  const bars = Array.from(
+    board.querySelectorAll<HTMLElement>(".vote-result-row strong"),
+  ).map((element) => ({
+    element,
+    current: 0,
+    final: Number(element.dataset.finalPercent ?? 0),
+  }));
+  const totalElement = board.querySelector<HTMLElement>("[data-vote-total]");
+
+  const interval = window.setInterval(() => {
+    let total = 0;
+    let isComplete = true;
+
+    bars.forEach((bar) => {
+      if (bar.current < bar.final) {
+        bar.current += 1;
+      }
+
+      if (bar.current < bar.final) {
+        isComplete = false;
+      }
+
+      total += bar.current;
+      bar.element.style.setProperty("--vote-width", `${bar.current}%`);
+      bar.element.textContent = `${bar.current}%`;
+    });
+
+    if (totalElement) {
+      totalElement.textContent = `TOTAL ${total}%`;
+    }
+
+    if (isComplete) {
+      window.clearInterval(interval);
+    }
+  }, 80);
+}
+
+function startDiceTurnAnimation(): void {
+  const board = preview.querySelector(".dice-process-board");
+
+  if (!board) {
+    return;
+  }
+
+  const rows = Array.from(board.querySelectorAll<HTMLElement>(".dice-score-row"));
+
+  [0, 1, 2].forEach((turnIndex) => {
+    window.setTimeout(() => {
+      rows.forEach((row) => {
+        const die = row.querySelector<HTMLElement>(`i[data-turn="${turnIndex}"]`);
+
+        if (!die) {
+          return;
+        }
+
+        die.classList.add("rolling");
+        window.setTimeout(() => {
+          die.textContent = die.dataset.value ?? "?";
+          die.classList.remove("pending", "rolling");
+          updateDiceProcessTotal(row);
+
+          if (turnIndex === 2 && row.dataset.winnerRow === "true") {
+            row.classList.add("winner");
+          }
+        }, 580);
+      });
+    }, 900 + turnIndex * 2300);
+  });
+}
+
+function updateDiceProcessTotal(row: HTMLElement): void {
+  const totalElement = row.querySelector<HTMLElement>("em[data-total]");
+
+  if (!totalElement) {
+    return;
+  }
+
+  const revealedTotal = Array.from(row.querySelectorAll<HTMLElement>("i:not(.pending)"))
+    .reduce((sum, die) => sum + Number(die.dataset.value ?? 0), 0);
+  totalElement.textContent = String(revealedTotal);
 }
 
 function formatPresentationMode(mode: BroadcastPresentationMode): string {
