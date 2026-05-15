@@ -66,7 +66,8 @@ export type PresentationMode =
   | "ladder-game"
   | "horse-race"
   | "running-race"
-  | "dice-roll";
+  | "dice-roll"
+  | "rolling-picker";
 
 export type PresentationScenario = {
   id: string;

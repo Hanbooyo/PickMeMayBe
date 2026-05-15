@@ -103,6 +103,28 @@ test("createShowPlan keeps generic modes as timeline-only plans", () => {
   assert.equal("lanes" in plan, false);
 });
 
+test("createShowPlan creates a rolling picker plan that locks on a winner", () => {
+  const scenario = createElectionBroadcastScenario({
+    id: "scenario-rolling",
+    title: "PickMeMaybe Rolling",
+    raffleResult,
+    participants,
+    visualAssets,
+    presentationMode: "rolling-picker",
+    durationSeconds: 10,
+  });
+
+  const plan = createShowPlan(scenario, {
+    seed: "rolling-reference",
+  });
+
+  assert.equal(plan.mode, "rolling-picker");
+  assert.ok(plan.items.length >= 24);
+  assert.equal(plan.lockIndex, plan.items.length - 1);
+  assert.equal(plan.items[plan.lockIndex].participantId, "p2");
+  assert.equal(plan.items[plan.lockIndex].isWinner, true);
+});
+
 test("createDefaultShowSteps rejects too-short timelines", () => {
   assert.throws(() => createDefaultShowSteps(5000), /at least 6000ms/);
 });

@@ -316,6 +316,7 @@ type BroadcastPresentationMode =
   | "rock-paper-scissors"
   | "vote-count"
   | "running-race"
+  | "rolling-picker"
   | "ladder-game";
 
 function readPresentationMode(): BroadcastPresentationMode {
@@ -324,6 +325,7 @@ function readPresentationMode(): BroadcastPresentationMode {
     "rock-paper-scissors",
     "vote-count",
     "running-race",
+    "rolling-picker",
   ];
   const modes = new Set<BroadcastPresentationMode>(["random", ...concreteModes]);
 
@@ -663,6 +665,14 @@ function createSuspenseVisual(
           <span></span>
         </div>
       `;
+    case "rolling-picker":
+      return `
+        <div class="rolling-stage" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      `;
     case "ladder-game":
       return `
         <div class="ladder-stage" aria-hidden="true">
@@ -692,6 +702,8 @@ function createRevealAccent(mode: BroadcastPresentationMode): string {
       return `<div class="reveal-accent">득표 집계 완료</div>`;
     case "running-race":
       return `<div class="reveal-accent">결승선 통과</div>`;
+    case "rolling-picker":
+      return `<div class="reveal-accent">롤링 정지</div>`;
     case "ladder-game":
       return `<div class="reveal-accent">사다리 도착</div>`;
     case "random":
@@ -710,6 +722,8 @@ function createProcessMarkup(
   switch (mode) {
     case "running-race":
       return createRaceProcessMarkup(winnerCards, cards, rng);
+    case "rolling-picker":
+      return createRollingProcessMarkup(winnerCards, cards, rng);
     case "vote-count":
       return createVoteResultMarkup(winnerCards, cards, rng, true);
     case "rock-paper-scissors":
@@ -734,6 +748,8 @@ function createModeResultMarkup(
       return createVoteResultMarkup(winnerCards, cards, rng);
     case "running-race":
       return createRaceResultMarkup(winnerCards, cards, rng);
+    case "rolling-picker":
+      return createRollingResultMarkup(winnerCards, cards, rng);
     case "ladder-game":
       return createLadderResultMarkup(winnerCards, cards, rng);
     case "rock-paper-scissors":
@@ -986,6 +1002,75 @@ function createDiceResultMarkup(
               <strong>${roll.dice.map((value, turnIndex) => `<i class="${isProcess ? "pending" : ""}" data-turn="${turnIndex}" data-value="${value}">${isProcess ? "?" : value}</i>`).join("")}</strong>
               <em data-total="${roll.total}">${isProcess ? 0 : roll.total}</em>
             </div>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function createRollingProcessMarkup(
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+  rng: () => number,
+): string {
+  const winner = winnerCards[0] ?? cards[0];
+  const pool = shuffleCards(cards, rng);
+  const rollItems = Array.from({ length: Math.max(26, cards.length * 5) }, (_, index) => {
+    if (index > Math.max(20, cards.length * 4)) {
+      return pool[index % pool.length] ?? winner;
+    }
+
+    return pool[randomInt(rng, 0, pool.length - 1)] ?? winner;
+  });
+  rollItems.push(winner);
+
+  return `
+    <div class="rolling-picker-board" aria-hidden="true">
+      <div class="rolling-window">
+        <div class="rolling-marker"></div>
+        <div class="rolling-strip" style="--rolling-count: ${rollItems.length}">
+          ${rollItems
+            .map(
+              (card) => `
+                <span class="rolling-card ${card.participantId === winner.participantId ? "winner-candidate" : ""}">
+                  <img src="/${escapeHtml(card.imagePath)}" alt="" onerror="this.remove()" />
+                  <strong>${escapeHtml(card.name)}</strong>
+                  <em>${escapeHtml(card.department ?? card.appliedAsset ?? "ENTRY")}</em>
+                </span>
+              `,
+            )
+            .join("")}
+        </div>
+      </div>
+      <div class="rolling-status">
+        <span>FAST ROLL</span>
+        <span>SLOW DOWN</span>
+        <strong>LOCK</strong>
+      </div>
+    </div>
+  `;
+}
+
+function createRollingResultMarkup(
+  winnerCards: BroadcastCard[],
+  cards: BroadcastCard[],
+  rng: () => number,
+): string {
+  const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
+  const ordered = [
+    ...winnerCards,
+    ...shuffleCards(cards, rng).filter((card) => !winnerIdSet.has(card.participantId)),
+  ].slice(0, Math.max(3, Math.min(cards.length, 8)));
+
+  return `
+    <div class="rolling-result-board" aria-hidden="true">
+      ${ordered
+        .map(
+          (card) => `
+            <span class="rolling-result-card ${winnerIdSet.has(card.participantId) ? "winner" : ""}">
+              ${escapeHtml(card.name)}
+            </span>
           `,
         )
         .join("")}
@@ -1256,6 +1341,8 @@ function formatPresentationMode(mode: BroadcastPresentationMode): string {
       return "Vote count";
     case "running-race":
       return "Running race";
+    case "rolling-picker":
+      return "Rolling picker";
     case "ladder-game":
       return "Ladder game";
   }
@@ -1269,6 +1356,8 @@ function createSuspenseTitle(mode: BroadcastPresentationMode): string {
       return "득표 집계 중";
     case "running-race":
       return "레이스 진행 중";
+    case "rolling-picker":
+      return "롤링 추첨 진행 중";
     case "ladder-game":
       return "사다리 경로 추적 중";
     case "random":

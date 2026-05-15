@@ -33,6 +33,7 @@ export type BroadcastPresentationMode =
   | "rock-paper-scissors"
   | "vote-count"
   | "running-race"
+  | "rolling-picker"
   | "ladder-game";
 
 export type BroadcastRaceLane = {
@@ -139,6 +140,7 @@ export function selectPresentationMode(seed: string): Exclude<BroadcastPresentat
     "rock-paper-scissors",
     "vote-count",
     "running-race",
+    "rolling-picker",
   ];
   const hash = [...seed].reduce(
     (accumulator, character) => accumulator + character.charCodeAt(0),

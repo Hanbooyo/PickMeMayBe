@@ -40,13 +40,27 @@ export type RaceShowPlan = {
   lanes: RaceShowLane[];
 };
 
+export type RollingShowItem = {
+  participantId: string;
+  name: string;
+  isWinner: boolean;
+};
+
+export type RollingShowPlan = {
+  mode: "rolling-picker";
+  durationMs: number;
+  steps: ShowProcessStep[];
+  items: RollingShowItem[];
+  lockIndex: number;
+};
+
 export type GenericShowPlan = {
-  mode: Exclude<BroadcastPresentationMode, "running-race">;
+  mode: Exclude<BroadcastPresentationMode, "running-race" | "rolling-picker">;
   durationMs: number;
   steps: ShowProcessStep[];
 };
 
-export type ShowPlan = RaceShowPlan | GenericShowPlan;
+export type ShowPlan = RaceShowPlan | RollingShowPlan | GenericShowPlan;
 
 export type CreateShowPlanOptions = {
   durationMs?: number;
@@ -76,11 +90,55 @@ export function createShowPlan(
     };
   }
 
+  if (scenario.presentationMode === "rolling-picker") {
+    const items = createRollingShowItems(
+      scenario.cards,
+      new Set(scenario.winnerIds),
+      createSeededRng(options.seed ?? scenario.raffleResultId),
+    );
+
+    return {
+      mode: "rolling-picker",
+      durationMs,
+      steps,
+      items,
+      lockIndex: items.length - 1,
+    };
+  }
+
   return {
     mode: scenario.presentationMode,
     durationMs,
     steps,
   };
+}
+
+function createRollingShowItems(
+  cards: BroadcastCandidateCard[],
+  winnerIdSet: Set<string>,
+  rng: () => number,
+): RollingShowItem[] {
+  const winner = cards.find((card) => winnerIdSet.has(card.participantId)) ?? cards[0];
+  const shuffled = shuffle(cards, rng);
+  const items = Array.from({ length: Math.max(24, cards.length * 5) }, (_, index) => {
+    const card = shuffled[index % shuffled.length] ?? winner;
+
+    return {
+      participantId: card.participantId,
+      name: card.name,
+      isWinner: winnerIdSet.has(card.participantId),
+    };
+  });
+
+  if (winner) {
+    items.push({
+      participantId: winner.participantId,
+      name: winner.name,
+      isWinner: true,
+    });
+  }
+
+  return items;
 }
 
 export function createDefaultShowSteps(durationMs: number): ShowProcessStep[] {
@@ -185,4 +243,15 @@ function hashString(value: string): number {
 
 function randomInt(rng: () => number, min: number, max: number): number {
   return Math.floor(rng() * (max - min + 1)) + min;
+}
+
+function shuffle<T>(items: T[], rng: () => number): T[] {
+  const shuffled = [...items];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(rng, 0, index);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
 }
