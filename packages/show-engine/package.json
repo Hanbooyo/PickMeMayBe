@@ -1,0 +1,11 @@
+{
+  "name": "@pick-me-maybe/show-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "../../dist/packages/show-engine/src/index.js",
+  "types": "../../dist/packages/show-engine/src/index.d.ts",
+  "dependencies": {
+    "@pick-me-maybe/presentation-engine": "file:../presentation-engine"
+  }
+}
