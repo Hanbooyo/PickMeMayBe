@@ -929,9 +929,24 @@
         color: #008ccb;
       }
 
+      .process-stage .rps-hand-token {
+        min-width: 28px;
+        display: inline-grid;
+        place-items: center;
+        animation: rps-hand-shake 0.18s infinite alternate ease-in-out;
+      }
+
+      .process-stage .rps-hand-token.stopped {
+        animation: rps-result-pop 0.42s ease-out both;
+      }
+
       .process-stage .rps-match {
         opacity: 0;
         animation: rps-match-reveal 0.74s ease-out both;
+      }
+
+      .process-stage .rps-match.resolved {
+        background: rgba(255, 255, 255, 0.2);
       }
 
       .process-stage .rps-match:nth-child(1) {
@@ -1423,6 +1438,15 @@
         }
       }
 
+      @keyframes rps-hand-shake {
+        from {
+          transform: translateY(0) rotate(-8deg);
+        }
+        to {
+          transform: translateY(-5px) rotate(8deg);
+        }
+      }
+
       @keyframes runner-ghost {
         0% {
           left: 16%;
@@ -1730,7 +1754,6 @@
                 <option value="rock-paper-scissors">Rock paper scissors</option>
                 <option value="vote-count">Vote count</option>
                 <option value="running-race">Running race</option>
-                <option value="ladder-game">Ladder game</option>
               </select>
             </label>
             <label class="checkbox-label">

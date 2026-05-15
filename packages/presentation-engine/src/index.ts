@@ -139,7 +139,6 @@ export function selectPresentationMode(seed: string): Exclude<BroadcastPresentat
     "rock-paper-scissors",
     "vote-count",
     "running-race",
-    "ladder-game",
   ];
   const hash = [...seed].reduce(
     (accumulator, character) => accumulator + character.charCodeAt(0),

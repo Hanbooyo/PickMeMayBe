@@ -65,7 +65,7 @@ test("createElectionBroadcastScenario creates winner cards and timeline", () => 
 
   assert.equal(scenario.id, "scenario-1");
   assert.equal(scenario.mode, "election-broadcast");
-  assert.equal(scenario.presentationMode, "running-race");
+  assert.equal(scenario.presentationMode, "vote-count");
   assert.equal(scenario.aspectRatio, "16:9");
   assert.deepEqual(scenario.participantIds, ["p1", "p2"]);
   assert.deepEqual(scenario.winnerIds, ["p2"]);
@@ -96,7 +96,7 @@ test("createElectionBroadcastScenario selects a deterministic random presentatio
     durationSeconds: 10,
   });
 
-  assert.equal(scenario.presentationMode, "running-race");
+  assert.equal(scenario.presentationMode, "vote-count");
 });
 
 test("createElectionBroadcastScenario creates running race metadata", () => {

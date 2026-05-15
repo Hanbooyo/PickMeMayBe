@@ -324,7 +324,6 @@ function readPresentationMode(): BroadcastPresentationMode {
     "rock-paper-scissors",
     "vote-count",
     "running-race",
-    "ladder-game",
   ];
   const modes = new Set<BroadcastPresentationMode>(["random", ...concreteModes]);
 
@@ -946,11 +945,11 @@ function createRpsResultMarkup(
             (match, index) => `
               <div class="rps-match">
                 <span class="rps-player ${match.winner.participantId === match.left.participantId ? "winner" : ""}">
-                  ${escapeHtml(match.left.name)} <b>${match.leftHand}</b>
+                  ${escapeHtml(match.left.name)} <b class="rps-hand-token" data-final-hand="${match.leftHand}">${match.leftHand}</b>
                 </span>
                 <em>VS</em>
                 <span class="rps-player ${match.right && match.winner.participantId === match.right.participantId ? "winner" : ""}">
-                  ${match.right ? escapeHtml(match.right.name) : "BYE"} <b>${match.right ? match.rightHand : "-"}</b>
+                  ${match.right ? escapeHtml(match.right.name) : "BYE"} <b class="rps-hand-token" data-final-hand="${match.right ? match.rightHand : "-"}">${match.right ? match.rightHand : "-"}</b>
                 </span>
                 <strong>R${index + 1}</strong>
               </div>
@@ -1121,6 +1120,11 @@ function startProcessAnimation(mode: BroadcastPresentationMode): void {
 
   if (mode === "dice-roll") {
     startDiceTurnAnimation();
+    return;
+  }
+
+  if (mode === "rock-paper-scissors") {
+    startRpsRouletteAnimation();
   }
 }
 
@@ -1211,6 +1215,33 @@ function updateDiceProcessTotal(row: HTMLElement): void {
   const revealedTotal = Array.from(row.querySelectorAll<HTMLElement>("i:not(.pending)"))
     .reduce((sum, die) => sum + Number(die.dataset.value ?? 0), 0);
   totalElement.textContent = String(revealedTotal);
+}
+
+function startRpsRouletteAnimation(): void {
+  const matches = Array.from(preview.querySelectorAll<HTMLElement>(".rps-match"));
+  const hands = ["R", "P", "S"];
+
+  matches.forEach((match, matchIndex) => {
+    const tokens = Array.from(match.querySelectorAll<HTMLElement>(".rps-hand-token"));
+    const startDelay = 650 + matchIndex * 1150;
+
+    window.setTimeout(() => {
+      const interval = window.setInterval(() => {
+        tokens.forEach((token) => {
+          token.textContent = hands[randomIntFromCrypto() % hands.length];
+        });
+      }, 90);
+
+      window.setTimeout(() => {
+        window.clearInterval(interval);
+        tokens.forEach((token) => {
+          token.textContent = token.dataset.finalHand ?? "-";
+          token.classList.add("stopped");
+        });
+        match.classList.add("resolved");
+      }, 820);
+    }, startDelay);
+  });
 }
 
 function formatPresentationMode(mode: BroadcastPresentationMode): string {
