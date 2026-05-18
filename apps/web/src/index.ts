@@ -10,6 +10,10 @@ import {
 import type { ManualParticipantInput } from "../../../packages/shared/src/index.js";
 import type { RaffleHistoryEntry } from "../../../packages/history/src/index.js";
 import type { ElectionBroadcastScenario } from "../../../packages/presentation-engine/src/index.js";
+import {
+  createShowPlan,
+  type RaceShowPlan,
+} from "../../../packages/show-engine/src/index.js";
 
 const importedAt = new Date().toISOString();
 const manualPreviewEndpoint = "http://localhost:4317/api/manual-preview";
@@ -531,11 +535,7 @@ function delay(milliseconds: number): Promise<void> {
 }
 
 function renderProcessPreview(
-  scenario: {
-    presentationMode?: BroadcastPresentationMode;
-    cards: BroadcastCard[];
-    winnerIds: string[];
-  },
+  scenario: ElectionBroadcastScenario,
   durationMs: number,
 ): void {
   const winnerIdSet = new Set(scenario.winnerIds);
@@ -549,7 +549,7 @@ function renderProcessPreview(
     <div class="winner-only-stage process-stage reveal-${escapeHtml(revealMode)}" style="--process-duration: ${durationMs}ms">
       <div class="mode-chip">${escapeHtml(modeLabel)}</div>
       <div class="reveal-accent">LIVE PROCESS</div>
-      ${createProcessMarkup(revealMode, winnerCards, scenario.cards)}
+      ${createProcessMarkup(revealMode, winnerCards, scenario.cards, scenario, durationMs)}
       <div class="suspense-subtitle">Generated raffle result is being revealed through the game flow.</div>
     </div>
   `;
@@ -716,12 +716,16 @@ function createProcessMarkup(
   mode: BroadcastPresentationMode,
   winnerCards: BroadcastCard[],
   cards: BroadcastCard[],
+  scenario: ElectionBroadcastScenario,
+  durationMs: number,
 ): string {
   const rng = createRevealRng(winnerCards, cards);
 
   switch (mode) {
     case "running-race":
-      return createRaceProcessMarkup(winnerCards, cards, rng);
+      return createRaceProcessMarkup(
+        createShowPlan(scenario, { durationMs }) as RaceShowPlan,
+      );
     case "rolling-picker":
       return createRollingProcessMarkup(winnerCards, cards, rng);
     case "vote-count":
@@ -881,36 +885,31 @@ function createRaceResultMarkup(
   `;
 }
 
-function createRaceProcessMarkup(
-  winnerCards: BroadcastCard[],
-  cards: BroadcastCard[],
-  rng: () => number,
-): string {
-  const winnerIdSet = new Set(winnerCards.map((card) => card.participantId));
-  const lanes = shuffleCards(cards, rng);
-
+function createRaceProcessMarkup(plan: RaceShowPlan): string {
   return `
     <div class="race-result-board process-race-board" aria-hidden="true">
       <div class="race-final-banner">
         <span>LIVE RACE</span>
         <strong>LEAD CHANGES</strong>
       </div>
-      <div class="race-result-track" style="--race-lanes: ${lanes.length}">
-        ${lanes
-          .map((card, index) => {
-            const isWinner = winnerIdSet.has(card.participantId);
-            const finish = isWinner ? randomInt(rng, 84, 92) : randomInt(rng, 46, 78);
-            const duration = randomInt(rng, 2600, 4200);
-            const delay = randomInt(rng, 0, 1600);
+      <div class="race-result-track" style="--race-lanes: ${plan.lanes.length}">
+        ${plan.lanes
+          .map((lane, index) => {
+            const keyframes = lane.keyframes;
+            const start = keyframes[0]?.positionPercent ?? 4;
+            const early = keyframes[1]?.positionPercent ?? 58;
+            const middle = keyframes[2]?.positionPercent ?? 36;
+            const late = keyframes[3]?.positionPercent ?? 76;
+            const finish = keyframes.at(-1)?.positionPercent ?? 82;
 
             return `
               <span
-                class="race-result-runner ${isWinner ? "winner" : "challenger"} process-runner"
-                style="--race-top: ${index}; --race-to: ${finish}%; --race-duration: ${duration}ms; --race-delay: ${delay}ms"
-                title="${escapeHtml(card.name)}"
+                class="race-result-runner ${lane.isWinner ? "winner" : "challenger"} process-runner"
+                style="--race-top: ${index}; --race-start: ${start}%; --race-early: ${early}%; --race-middle: ${middle}%; --race-late: ${late}%; --race-to: ${finish}%; --race-duration: ${plan.durationMs}ms; --race-delay: 0ms"
+                title="${escapeHtml(lane.name)}"
               >
-                <span>${isWinner ? "W" : String(index + 1)}</span>
-                <em>${escapeHtml(card.name)}</em>
+                <span>${lane.isWinner ? "W" : String(index + 1)}</span>
+                <em>${escapeHtml(lane.name)}</em>
               </span>
             `;
           })

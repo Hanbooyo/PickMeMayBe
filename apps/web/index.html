@@ -704,9 +704,9 @@
 
       .process-stage .process-runner {
         animation-name: race-process-run;
-        animation-duration: calc(var(--process-duration, 10000ms) * 0.36);
-        animation-iteration-count: 2;
-        animation-direction: alternate;
+        animation-duration: var(--race-duration, var(--process-duration, 10000ms));
+        animation-iteration-count: 1;
+        animation-direction: normal;
       }
 
       .race-result-runner em {
@@ -1522,19 +1522,19 @@
 
       @keyframes race-process-run {
         0% {
-          left: 8%;
+          left: var(--race-start, 8%);
           transform: scale(0.9);
         }
         24% {
-          left: 58%;
+          left: var(--race-early, 58%);
           transform: scale(1.05);
         }
         46% {
-          left: 36%;
+          left: var(--race-middle, 36%);
           transform: scale(0.96);
         }
         72% {
-          left: 76%;
+          left: var(--race-late, 76%);
           transform: scale(1.1);
         }
         100% {
