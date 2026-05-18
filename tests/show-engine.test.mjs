@@ -84,7 +84,7 @@ test("createShowPlan maps a running race scenario to lanes and keyframes", () =>
   assert.ok(plan.lanes[0].keyframes.at(-1).positionPercent < 100);
 });
 
-test("createShowPlan keeps generic modes as timeline-only plans", () => {
+test("createShowPlan creates vote rows that add up to 100 percent", () => {
   const scenario = createElectionBroadcastScenario({
     id: "scenario-vote",
     title: "PickMeMaybe Vote",
@@ -95,9 +95,32 @@ test("createShowPlan keeps generic modes as timeline-only plans", () => {
     durationSeconds: 10,
   });
 
-  const plan = createShowPlan(scenario);
+  const plan = createShowPlan(scenario, {
+    seed: "vote-reference",
+  });
 
   assert.equal(plan.mode, "vote-count");
+  assert.equal(plan.durationMs, 10000);
+  assert.equal(plan.totalPercent, 100);
+  assert.equal(plan.rows.reduce((sum, row) => sum + row.percent, 0), 100);
+  assert.equal(plan.rows[0].participantId, "p2");
+  assert.equal(plan.rows[0].isWinner, true);
+});
+
+test("createShowPlan keeps generic modes as timeline-only plans", () => {
+  const scenario = createElectionBroadcastScenario({
+    id: "scenario-rps",
+    title: "PickMeMaybe RPS",
+    raffleResult,
+    participants,
+    visualAssets,
+    presentationMode: "rock-paper-scissors",
+    durationSeconds: 10,
+  });
+
+  const plan = createShowPlan(scenario);
+
+  assert.equal(plan.mode, "rock-paper-scissors");
   assert.equal(plan.durationMs, 10000);
   assert.equal(plan.steps.length, 7);
   assert.equal("lanes" in plan, false);

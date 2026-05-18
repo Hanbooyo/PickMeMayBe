@@ -15,6 +15,7 @@ import {
   type DiceShowPlan,
   type RaceShowPlan,
   type RollingShowPlan,
+  type VoteShowPlan,
 } from "../../../packages/show-engine/src/index.js";
 
 const importedAt = new Date().toISOString();
@@ -734,7 +735,9 @@ function createProcessMarkup(
         cards,
       );
     case "vote-count":
-      return createVoteResultMarkup(winnerCards, cards, rng, true);
+      return createVoteProcessMarkup(
+        createShowPlan(scenario, { durationMs }) as VoteShowPlan,
+      );
     case "rock-paper-scissors":
       return createRpsResultMarkup(winnerCards, cards, rng);
     case "ladder-game":
@@ -805,6 +808,29 @@ function createVoteResultMarkup(
               <div class="vote-result-row ${winnerIdSet.has(row.card.participantId) ? "winner" : ""}">
                 <span>${index + 1}. ${escapeHtml(row.card.name)}</span>
                 <strong style="--vote-width: ${isProcess ? 0 : row.percent}%" ${isProcess ? `data-final-percent="${row.percent}"` : ""}>${isProcess ? 0 : row.percent}%</strong>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function createVoteProcessMarkup(plan: VoteShowPlan): string {
+  return `
+    <div class="vote-result-board election-board vote-counting-board" aria-hidden="true">
+      <div class="election-board-header">
+        <span>COUNTING LIVE</span>
+        <strong data-vote-total="${plan.totalPercent}">TOTAL 0%</strong>
+      </div>
+      <div class="vote-result-list">
+        ${plan.rows
+          .map(
+            (row) => `
+              <div class="vote-result-row ${row.isWinner ? "winner" : ""}">
+                <span>${row.rank}. ${escapeHtml(row.name)}</span>
+                <strong style="--vote-width: 0%" data-final-percent="${row.percent}">0%</strong>
               </div>
             `,
           )

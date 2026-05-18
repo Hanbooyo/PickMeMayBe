@@ -71,13 +71,37 @@ export type DiceShowPlan = {
   rolls: DiceShowRoll[];
 };
 
+export type VoteShowRow = {
+  participantId: string;
+  name: string;
+  isWinner: boolean;
+  percent: number;
+  rank: number;
+};
+
+export type VoteShowPlan = {
+  mode: "vote-count";
+  durationMs: number;
+  steps: ShowProcessStep[];
+  totalPercent: number;
+  rows: VoteShowRow[];
+};
+
 export type GenericShowPlan = {
-  mode: Exclude<BroadcastPresentationMode, "running-race" | "rolling-picker" | "dice-roll">;
+  mode: Exclude<
+    BroadcastPresentationMode,
+    "running-race" | "rolling-picker" | "dice-roll" | "vote-count"
+  >;
   durationMs: number;
   steps: ShowProcessStep[];
 };
 
-export type ShowPlan = RaceShowPlan | RollingShowPlan | DiceShowPlan | GenericShowPlan;
+export type ShowPlan =
+  | RaceShowPlan
+  | RollingShowPlan
+  | DiceShowPlan
+  | VoteShowPlan
+  | GenericShowPlan;
 
 export type CreateShowPlanOptions = {
   durationMs?: number;
@@ -130,6 +154,20 @@ export function createShowPlan(
       steps,
       turnCount: 3,
       rolls: createDiceShowRolls(
+        scenario.cards,
+        new Set(scenario.winnerIds),
+        createSeededRng(options.seed ?? scenario.raffleResultId),
+      ),
+    };
+  }
+
+  if (scenario.presentationMode === "vote-count") {
+    return {
+      mode: "vote-count",
+      durationMs,
+      steps,
+      totalPercent: 100,
+      rows: createVoteShowRows(
         scenario.cards,
         new Set(scenario.winnerIds),
         createSeededRng(options.seed ?? scenario.raffleResultId),
@@ -212,6 +250,54 @@ function createDiceShowRolls(
     .sort((left, right) => right.total - left.total)
     .map((roll, index) => ({
       ...roll,
+      rank: index + 1,
+    }));
+}
+
+function createVoteShowRows(
+  cards: BroadcastCandidateCard[],
+  winnerIdSet: Set<string>,
+  rng: () => number,
+): VoteShowRow[] {
+  if (cards.length === 0) {
+    return [];
+  }
+
+  const weighted = cards.map((card) => ({
+    card,
+    weight: winnerIdSet.has(card.participantId)
+      ? randomInt(rng, 34, 56)
+      : randomInt(rng, 8, 28),
+  }));
+  const weightTotal = weighted.reduce((sum, row) => sum + row.weight, 0);
+  let remaining = 100;
+
+  const rows = weighted.map((row, index) => {
+    const isLast = index === weighted.length - 1;
+    const percent = isLast
+      ? remaining
+      : Math.max(1, Math.round((row.weight / weightTotal) * 100));
+    remaining -= percent;
+
+    return {
+      participantId: row.card.participantId,
+      name: row.card.name,
+      isWinner: winnerIdSet.has(row.card.participantId),
+      percent,
+      rank: 0,
+    };
+  });
+
+  while (remaining !== 0) {
+    const target = rows.find((row) => row.percent + Math.sign(remaining) > 0) ?? rows[0];
+    target.percent += Math.sign(remaining);
+    remaining -= Math.sign(remaining);
+  }
+
+  return rows
+    .sort((left, right) => right.percent - left.percent)
+    .map((row, index) => ({
+      ...row,
       rank: index + 1,
     }));
 }
