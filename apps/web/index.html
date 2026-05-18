@@ -1687,19 +1687,19 @@
           transform: translateX(0);
         }
         58% {
-          transform: translateX(calc((var(--rolling-count) - 9) * -204px));
+          transform: translateX(calc((var(--rolling-lock-index) - 8) * -204px));
         }
         78% {
-          transform: translateX(calc((var(--rolling-count) - 5) * -204px));
+          transform: translateX(calc((var(--rolling-lock-index) - 4) * -204px));
         }
         90% {
-          transform: translateX(calc((var(--rolling-count) - 3) * -204px));
+          transform: translateX(calc((var(--rolling-lock-index) - 2) * -204px));
         }
         96% {
-          transform: translateX(calc((var(--rolling-count) - 2.35) * -204px));
+          transform: translateX(calc((var(--rolling-lock-index) - 1.35) * -204px));
         }
         100% {
-          transform: translateX(calc((var(--rolling-count) - 1) * -204px));
+          transform: translateX(calc(var(--rolling-lock-index) * -204px));
         }
       }
 

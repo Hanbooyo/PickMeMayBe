@@ -13,6 +13,7 @@ import type { ElectionBroadcastScenario } from "../../../packages/presentation-e
 import {
   createShowPlan,
   type RaceShowPlan,
+  type RollingShowPlan,
 } from "../../../packages/show-engine/src/index.js";
 
 const importedAt = new Date().toISOString();
@@ -727,7 +728,10 @@ function createProcessMarkup(
         createShowPlan(scenario, { durationMs }) as RaceShowPlan,
       );
     case "rolling-picker":
-      return createRollingProcessMarkup(winnerCards, cards, rng);
+      return createRollingProcessMarkup(
+        createShowPlan(scenario, { durationMs }) as RollingShowPlan,
+        cards,
+      );
     case "vote-count":
       return createVoteResultMarkup(winnerCards, cards, rng, true);
     case "rock-paper-scissors":
@@ -1009,36 +1013,32 @@ function createDiceResultMarkup(
 }
 
 function createRollingProcessMarkup(
-  winnerCards: BroadcastCard[],
+  plan: RollingShowPlan,
   cards: BroadcastCard[],
-  rng: () => number,
 ): string {
-  const winner = winnerCards[0] ?? cards[0];
-  const pool = shuffleCards(cards, rng);
-  const rollItems = Array.from({ length: Math.max(26, cards.length * 5) }, (_, index) => {
-    if (index > Math.max(20, cards.length * 4)) {
-      return pool[index % pool.length] ?? winner;
-    }
-
-    return pool[randomInt(rng, 0, pool.length - 1)] ?? winner;
-  });
-  rollItems.push(winner);
+  const cardByParticipantId = new Map(
+    cards.map((card) => [card.participantId, card]),
+  );
 
   return `
     <div class="rolling-picker-board" aria-hidden="true">
       <div class="rolling-window">
         <div class="rolling-marker"></div>
-        <div class="rolling-strip" style="--rolling-count: ${rollItems.length}">
-          ${rollItems
-            .map(
-              (card) => `
-                <span class="rolling-card ${card.participantId === winner.participantId ? "winner-candidate" : ""}">
-                  <img src="/${escapeHtml(card.imagePath)}" alt="" onerror="this.remove()" />
-                  <strong>${escapeHtml(card.name)}</strong>
-                  <em>${escapeHtml(card.department ?? card.appliedAsset ?? "ENTRY")}</em>
+        <div class="rolling-strip" style="--rolling-count: ${plan.items.length}; --rolling-lock-index: ${plan.lockIndex}">
+          ${plan.items
+            .map((item) => {
+              const card = cardByParticipantId.get(item.participantId);
+              const imagePath = card?.imagePath ?? "";
+              const meta = card?.department ?? card?.appliedAsset ?? "ENTRY";
+
+              return `
+                <span class="rolling-card ${item.isWinner ? "winner-candidate" : ""}">
+                  ${imagePath ? `<img src="/${escapeHtml(imagePath)}" alt="" onerror="this.remove()" />` : ""}
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <em>${escapeHtml(meta)}</em>
                 </span>
-              `,
-            )
+              `;
+            })
             .join("")}
         </div>
       </div>
