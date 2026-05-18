@@ -125,6 +125,30 @@ test("createShowPlan creates a rolling picker plan that locks on a winner", () =
   assert.equal(plan.items[plan.lockIndex].isWinner, true);
 });
 
+test("createShowPlan creates three-turn dice rolls with winners ranked first", () => {
+  const scenario = createElectionBroadcastScenario({
+    id: "scenario-dice",
+    title: "PickMeMaybe Dice",
+    raffleResult,
+    participants,
+    visualAssets,
+    presentationMode: "dice-roll",
+    durationSeconds: 10,
+  });
+
+  const plan = createShowPlan(scenario, {
+    seed: "dice-reference",
+  });
+
+  assert.equal(plan.mode, "dice-roll");
+  assert.equal(plan.turnCount, 3);
+  assert.equal(plan.rolls.length, 3);
+  assert.ok(plan.rolls.every((roll) => roll.turns.length === 3));
+  assert.equal(plan.rolls[0].participantId, "p2");
+  assert.equal(plan.rolls[0].isWinner, true);
+  assert.ok(plan.rolls[0].total >= plan.rolls.at(-1).total);
+});
+
 test("createDefaultShowSteps rejects too-short timelines", () => {
   assert.throws(() => createDefaultShowSteps(5000), /at least 6000ms/);
 });

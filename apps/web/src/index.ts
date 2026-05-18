@@ -12,6 +12,7 @@ import type { RaffleHistoryEntry } from "../../../packages/history/src/index.js"
 import type { ElectionBroadcastScenario } from "../../../packages/presentation-engine/src/index.js";
 import {
   createShowPlan,
+  type DiceShowPlan,
   type RaceShowPlan,
   type RollingShowPlan,
 } from "../../../packages/show-engine/src/index.js";
@@ -740,7 +741,11 @@ function createProcessMarkup(
       return createLadderResultMarkup(winnerCards, cards, rng);
     case "random":
     case "dice-roll":
-      return createDiceResultMarkup(winnerCards, cards, rng, true);
+      return createDiceProcessMarkup(
+        createShowPlan(scenario, {
+          durationMs,
+        }) as DiceShowPlan,
+      );
   }
 }
 
@@ -1004,6 +1009,24 @@ function createDiceResultMarkup(
               <span>${index + 1}. ${escapeHtml(roll.card.name)}</span>
               <strong>${roll.dice.map((value, turnIndex) => `<i class="${isProcess ? "pending" : ""}" data-turn="${turnIndex}" data-value="${value}">${isProcess ? "?" : value}</i>`).join("")}</strong>
               <em data-total="${roll.total}">${isProcess ? 0 : roll.total}</em>
+            </div>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function createDiceProcessMarkup(plan: DiceShowPlan): string {
+  return `
+    <div class="dice-result-board dice-score-board dice-process-board" aria-hidden="true">
+      ${plan.rolls
+        .map(
+          (roll) => `
+            <div class="dice-score-row" ${roll.isWinner ? "data-winner-row=\"true\"" : ""}>
+              <span>${roll.rank}. ${escapeHtml(roll.name)}</span>
+              <strong>${roll.turns.map((value, turnIndex) => `<i class="pending" data-turn="${turnIndex}" data-value="${value}">?</i>`).join("")}</strong>
+              <em data-total="${roll.total}">0</em>
             </div>
           `,
         )

@@ -54,13 +54,30 @@ export type RollingShowPlan = {
   lockIndex: number;
 };
 
+export type DiceShowRoll = {
+  participantId: string;
+  name: string;
+  isWinner: boolean;
+  turns: number[];
+  total: number;
+  rank: number;
+};
+
+export type DiceShowPlan = {
+  mode: "dice-roll";
+  durationMs: number;
+  steps: ShowProcessStep[];
+  turnCount: number;
+  rolls: DiceShowRoll[];
+};
+
 export type GenericShowPlan = {
-  mode: Exclude<BroadcastPresentationMode, "running-race" | "rolling-picker">;
+  mode: Exclude<BroadcastPresentationMode, "running-race" | "rolling-picker" | "dice-roll">;
   durationMs: number;
   steps: ShowProcessStep[];
 };
 
-export type ShowPlan = RaceShowPlan | RollingShowPlan | GenericShowPlan;
+export type ShowPlan = RaceShowPlan | RollingShowPlan | DiceShowPlan | GenericShowPlan;
 
 export type CreateShowPlanOptions = {
   durationMs?: number;
@@ -106,6 +123,20 @@ export function createShowPlan(
     };
   }
 
+  if (scenario.presentationMode === "dice-roll") {
+    return {
+      mode: "dice-roll",
+      durationMs,
+      steps,
+      turnCount: 3,
+      rolls: createDiceShowRolls(
+        scenario.cards,
+        new Set(scenario.winnerIds),
+        createSeededRng(options.seed ?? scenario.raffleResultId),
+      ),
+    };
+  }
+
   return {
     mode: scenario.presentationMode,
     durationMs,
@@ -139,6 +170,50 @@ function createRollingShowItems(
   }
 
   return items;
+}
+
+function createDiceShowRolls(
+  cards: BroadcastCandidateCard[],
+  winnerIdSet: Set<string>,
+  rng: () => number,
+): DiceShowRoll[] {
+  const rolls = shuffle(cards, rng).map((card) => {
+    const isWinner = winnerIdSet.has(card.participantId);
+    const turns = isWinner
+      ? [randomInt(rng, 4, 6), randomInt(rng, 4, 6), randomInt(rng, 4, 6)]
+      : [randomInt(rng, 1, 4), randomInt(rng, 1, 4), randomInt(rng, 1, 4)];
+
+    return {
+      participantId: card.participantId,
+      name: card.name,
+      isWinner,
+      turns,
+      total: turns.reduce((sum, value) => sum + value, 0),
+      rank: 0,
+    };
+  });
+
+  const highestNonWinnerTotal = Math.max(
+    0,
+    ...rolls.filter((roll) => !roll.isWinner).map((roll) => roll.total),
+  );
+
+  rolls
+    .filter((roll) => roll.isWinner)
+    .forEach((roll) => {
+      while (roll.total <= highestNonWinnerTotal && roll.turns.some((value) => value < 6)) {
+        const targetIndex = roll.turns.findIndex((value) => value < 6);
+        roll.turns[targetIndex] += 1;
+        roll.total += 1;
+      }
+    });
+
+  return rolls
+    .sort((left, right) => right.total - left.total)
+    .map((roll, index) => ({
+      ...roll,
+      rank: index + 1,
+    }));
 }
 
 export function createDefaultShowSteps(durationMs: number): ShowProcessStep[] {
