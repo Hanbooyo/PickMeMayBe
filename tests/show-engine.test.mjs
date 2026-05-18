@@ -109,6 +109,25 @@ test("createShowPlan creates vote rows that add up to 100 percent", () => {
 
 test("createShowPlan keeps generic modes as timeline-only plans", () => {
   const scenario = createElectionBroadcastScenario({
+    id: "scenario-ladder",
+    title: "PickMeMaybe Ladder",
+    raffleResult,
+    participants,
+    visualAssets,
+    presentationMode: "ladder-game",
+    durationSeconds: 10,
+  });
+
+  const plan = createShowPlan(scenario);
+
+  assert.equal(plan.mode, "ladder-game");
+  assert.equal(plan.durationMs, 10000);
+  assert.equal(plan.steps.length, 7);
+  assert.equal("lanes" in plan, false);
+});
+
+test("createShowPlan creates a rock paper scissors tournament bracket", () => {
+  const scenario = createElectionBroadcastScenario({
     id: "scenario-rps",
     title: "PickMeMaybe RPS",
     raffleResult,
@@ -118,12 +137,21 @@ test("createShowPlan keeps generic modes as timeline-only plans", () => {
     durationSeconds: 10,
   });
 
-  const plan = createShowPlan(scenario);
+  const plan = createShowPlan(scenario, {
+    seed: "rps-reference",
+  });
 
   assert.equal(plan.mode, "rock-paper-scissors");
-  assert.equal(plan.durationMs, 10000);
-  assert.equal(plan.steps.length, 7);
-  assert.equal("lanes" in plan, false);
+  assert.ok(plan.rounds >= 1);
+  assert.ok(plan.matches.length >= 2);
+  assert.equal(plan.matches.at(-1).winnerParticipantId, "p2");
+  assert.ok(
+    plan.matches.every((match) =>
+      [match.left.participantId, match.right?.participantId].includes(
+        match.winnerParticipantId,
+      ),
+    ),
+  );
 });
 
 test("createShowPlan creates a rolling picker plan that locks on a winner", () => {

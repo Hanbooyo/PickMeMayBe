@@ -87,10 +87,38 @@ export type VoteShowPlan = {
   rows: VoteShowRow[];
 };
 
+export type RpsHand = "R" | "P" | "S";
+
+export type RpsShowPlayer = {
+  participantId: string;
+  name: string;
+  hand: RpsHand;
+};
+
+export type RpsShowMatch = {
+  round: number;
+  match: number;
+  left: RpsShowPlayer;
+  right: RpsShowPlayer | null;
+  winnerParticipantId: string;
+};
+
+export type RpsShowPlan = {
+  mode: "rock-paper-scissors";
+  durationMs: number;
+  steps: ShowProcessStep[];
+  rounds: number;
+  matches: RpsShowMatch[];
+};
+
 export type GenericShowPlan = {
   mode: Exclude<
     BroadcastPresentationMode,
-    "running-race" | "rolling-picker" | "dice-roll" | "vote-count"
+    | "running-race"
+    | "rolling-picker"
+    | "dice-roll"
+    | "vote-count"
+    | "rock-paper-scissors"
   >;
   durationMs: number;
   steps: ShowProcessStep[];
@@ -101,6 +129,7 @@ export type ShowPlan =
   | RollingShowPlan
   | DiceShowPlan
   | VoteShowPlan
+  | RpsShowPlan
   | GenericShowPlan;
 
 export type CreateShowPlanOptions = {
@@ -172,6 +201,22 @@ export function createShowPlan(
         new Set(scenario.winnerIds),
         createSeededRng(options.seed ?? scenario.raffleResultId),
       ),
+    };
+  }
+
+  if (scenario.presentationMode === "rock-paper-scissors") {
+    const matches = createRpsShowMatches(
+      scenario.cards,
+      new Set(scenario.winnerIds),
+      createSeededRng(options.seed ?? scenario.raffleResultId),
+    );
+
+    return {
+      mode: "rock-paper-scissors",
+      durationMs,
+      steps,
+      rounds: Math.max(0, ...matches.map((match) => match.round)),
+      matches,
     };
   }
 
@@ -252,6 +297,111 @@ function createDiceShowRolls(
       ...roll,
       rank: index + 1,
     }));
+}
+
+function createRpsShowMatches(
+  cards: BroadcastCandidateCard[],
+  winnerIdSet: Set<string>,
+  rng: () => number,
+): RpsShowMatch[] {
+  const matches: RpsShowMatch[] = [];
+  let active = shuffle(cards, rng);
+  let round = 1;
+  const targetWinnerCount = Math.max(1, winnerIdSet.size);
+
+  while (active.length > targetWinnerCount) {
+    const nextRound: BroadcastCandidateCard[] = [];
+
+    for (let index = 0; index < active.length; index += 2) {
+      const leftCard = active[index];
+      const rightCard = active[index + 1] ?? null;
+      const winner = chooseRpsWinner(leftCard, rightCard, winnerIdSet, rng);
+      const hands = createRpsHands(leftCard, rightCard, winner, rng);
+
+      matches.push({
+        round,
+        match: Math.floor(index / 2) + 1,
+        left: {
+          participantId: leftCard.participantId,
+          name: leftCard.name,
+          hand: hands.left,
+        },
+        right: rightCard
+          ? {
+              participantId: rightCard.participantId,
+              name: rightCard.name,
+              hand: hands.right,
+            }
+          : null,
+        winnerParticipantId: winner.participantId,
+      });
+
+      nextRound.push(winner);
+    }
+
+    active = nextRound;
+    round += 1;
+  }
+
+  return matches;
+}
+
+function chooseRpsWinner(
+  left: BroadcastCandidateCard,
+  right: BroadcastCandidateCard | null,
+  winnerIdSet: Set<string>,
+  rng: () => number,
+): BroadcastCandidateCard {
+  if (!right) {
+    return left;
+  }
+
+  if (winnerIdSet.has(left.participantId)) {
+    return left;
+  }
+
+  if (winnerIdSet.has(right.participantId)) {
+    return right;
+  }
+
+  return rng() >= 0.5 ? left : right;
+}
+
+function createRpsHands(
+  left: BroadcastCandidateCard,
+  right: BroadcastCandidateCard | null,
+  winner: BroadcastCandidateCard,
+  rng: () => number,
+): { left: RpsHand; right: RpsHand } {
+  if (!right) {
+    return {
+      left: randomRpsHand(rng),
+      right: randomRpsHand(rng),
+    };
+  }
+
+  const winnerHand = randomRpsHand(rng);
+  const loserHand = getLosingRpsHand(winnerHand);
+
+  return winner.participantId === left.participantId
+    ? { left: winnerHand, right: loserHand }
+    : { left: loserHand, right: winnerHand };
+}
+
+function randomRpsHand(rng: () => number): RpsHand {
+  const hands: RpsHand[] = ["R", "P", "S"];
+  return hands[randomInt(rng, 0, hands.length - 1)];
+}
+
+function getLosingRpsHand(hand: RpsHand): RpsHand {
+  switch (hand) {
+    case "R":
+      return "S";
+    case "P":
+      return "R";
+    case "S":
+      return "P";
+  }
 }
 
 function createVoteShowRows(

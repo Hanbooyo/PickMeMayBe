@@ -15,6 +15,7 @@ import {
   type DiceShowPlan,
   type RaceShowPlan,
   type RollingShowPlan,
+  type RpsShowPlan,
   type VoteShowPlan,
 } from "../../../packages/show-engine/src/index.js";
 
@@ -739,7 +740,9 @@ function createProcessMarkup(
         createShowPlan(scenario, { durationMs }) as VoteShowPlan,
       );
     case "rock-paper-scissors":
-      return createRpsResultMarkup(winnerCards, cards, rng);
+      return createRpsProcessMarkup(
+        createShowPlan(scenario, { durationMs }) as RpsShowPlan,
+      );
     case "ladder-game":
       return createLadderResultMarkup(winnerCards, cards, rng);
     case "random":
@@ -1002,6 +1005,35 @@ function createRpsResultMarkup(
                   ${match.right ? escapeHtml(match.right.name) : "BYE"} <b class="rps-hand-token" data-final-hand="${match.right ? match.rightHand : "-"}">${match.right ? match.rightHand : "-"}</b>
                 </span>
                 <strong>R${index + 1}</strong>
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function createRpsProcessMarkup(plan: RpsShowPlan): string {
+  return `
+    <div class="rps-result-board rps-bracket-board" aria-hidden="true">
+      <div class="election-board-header">
+        <span>TOURNAMENT</span>
+        <strong>${plan.rounds} ROUND${plan.rounds === 1 ? "" : "S"}</strong>
+      </div>
+      <div class="rps-match-list">
+        ${plan.matches
+          .map(
+            (match) => `
+              <div class="rps-match">
+                <span class="rps-player ${match.winnerParticipantId === match.left.participantId ? "winner" : ""}">
+                  ${escapeHtml(match.left.name)} <b class="rps-hand-token" data-final-hand="${match.left.hand}">${match.left.hand}</b>
+                </span>
+                <em>VS</em>
+                <span class="rps-player ${match.right && match.winnerParticipantId === match.right.participantId ? "winner" : ""}">
+                  ${match.right ? escapeHtml(match.right.name) : "BYE"} <b class="rps-hand-token" data-final-hand="${match.right ? match.right.hand : "-"}">${match.right ? match.right.hand : "-"}</b>
+                </span>
+                <strong>R${match.round}-${match.match}</strong>
               </div>
             `,
           )
