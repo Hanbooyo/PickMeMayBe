@@ -53,7 +53,7 @@ export type RaffleOptions = {
 
 export type RaffleProof = {
   algorithmVersion: string;
-  randomSource: "crypto" | "injected";
+  randomSource: "crypto" | "seeded" | "injected";
   randomSeed?: string;
   inputHash: string;
   settingsHash: string;

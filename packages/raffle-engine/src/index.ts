@@ -64,7 +64,7 @@ export function drawWinners(input: DrawWinnersInput): RaffleResult {
 
   const shuffled = shuffleParticipants(
     eligibleParticipants,
-    input.randomInt ?? cryptoRandomInt,
+    getRandomIntSource(input),
   );
   const winners = shuffled.slice(0, input.options.winnerCount);
 
@@ -167,7 +167,7 @@ function createRaffleProof({
 }): RaffleProof {
   return {
     algorithmVersion: raffleAlgorithmVersion,
-    randomSource: input.randomInt ? "injected" : "crypto",
+    randomSource: getRandomSourceLabel(input),
     ...(input.randomSeed ? { randomSeed: input.randomSeed } : {}),
     inputHash: sha256Canonical(
       input.participants.map((participant) => ({
@@ -210,6 +210,51 @@ function canonicalize(value: unknown): string {
     .filter((key) => record[key] !== undefined)
     .map((key) => `${JSON.stringify(key)}:${canonicalize(record[key])}`)
     .join(",")}}`;
+}
+
+function getRandomIntSource(input: DrawWinnersInput): RaffleRandomInt {
+  if (input.randomInt) {
+    return input.randomInt;
+  }
+
+  if (input.randomSeed) {
+    return createSeededRandomInt(input.randomSeed);
+  }
+
+  return cryptoRandomInt;
+}
+
+function getRandomSourceLabel(input: DrawWinnersInput): RaffleProof["randomSource"] {
+  if (input.randomInt) {
+    return "injected";
+  }
+
+  if (input.randomSeed) {
+    return "seeded";
+  }
+
+  return "crypto";
+}
+
+function createSeededRandomInt(seed: string): RaffleRandomInt {
+  let state = hashSeed(seed);
+
+  return (maxExclusive: number) => {
+    if (!Number.isInteger(maxExclusive) || maxExclusive <= 0) {
+      throw new RaffleEngineError(
+        "INVALID_WINNER_COUNT",
+        "Random integer upper bound must be a positive integer.",
+      );
+    }
+
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return Math.floor((state / 0x100000000) * maxExclusive);
+  };
+}
+
+function hashSeed(seed: string): number {
+  const digest = createHash("sha256").update(seed).digest();
+  return digest.readUInt32BE(0);
 }
 
 function cryptoRandomInt(maxExclusive: number): number {

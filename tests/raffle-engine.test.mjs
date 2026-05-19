@@ -69,8 +69,35 @@ test("drawWinners creates stable proof hashes for the same audited draw", () => 
   const second = drawWinners(input);
 
   assert.equal(first.proof.randomSeed, "audit-seed-1");
+  assert.equal(first.proof.randomSource, "injected");
   assert.equal(first.proof.inputHash, second.proof.inputHash);
   assert.equal(first.proof.settingsHash, second.proof.settingsHash);
+  assert.equal(first.proof.resultHash, second.proof.resultHash);
+});
+
+test("drawWinners can reproduce winners from a seed", () => {
+  const input = {
+    id: "raffle-seeded",
+    participants: [
+      participant("p1"),
+      participant("p2"),
+      participant("p3"),
+      participant("p4"),
+    ],
+    options: {
+      winnerCount: 2,
+      allowPreviousWinners: true,
+    },
+    createdAt,
+    randomSeed: "public-seed-2026",
+  };
+
+  const first = drawWinners(input);
+  const second = drawWinners(input);
+
+  assert.equal(first.proof.randomSource, "seeded");
+  assert.equal(first.proof.randomSeed, "public-seed-2026");
+  assert.deepEqual(first.winnerIds, second.winnerIds);
   assert.equal(first.proof.resultHash, second.proof.resultHash);
 });
 

@@ -43,6 +43,7 @@ export type ManualPreviewRequest = {
   allowPreviousWinners?: boolean;
   previousWinnerIds?: string[];
   presentationMode?: BroadcastPresentationMode;
+  randomSeed?: string;
 };
 
 export type RosterFileParseRequest = {
@@ -162,6 +163,7 @@ export function createManualPreview(
     },
     previousWinnerIds: request.previousWinnerIds,
     createdAt: now,
+    randomSeed: request.randomSeed,
   });
   const scenario = createElectionBroadcastScenario({
     id: "api-preview-scenario",

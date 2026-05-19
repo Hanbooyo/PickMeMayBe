@@ -134,6 +134,34 @@ test("createManualPreview supports running race presentation metadata", () => {
   );
 });
 
+test("createManualPreview supports reproducible seeded draws", () => {
+  clearPreviewHistory();
+  const request = {
+    participants: [
+      {
+        name: "Alpha",
+        email: "alpha@example.com",
+      },
+      {
+        name: "Beta",
+        email: "beta@example.com",
+      },
+      {
+        name: "Gamma",
+        email: "gamma@example.com",
+      },
+    ],
+    randomSeed: "api-seed-2026",
+  };
+
+  const first = createManualPreview(request, now);
+  const second = createManualPreview(request, now);
+
+  assert.equal(first.raffleResult.proof.randomSource, "seeded");
+  assert.equal(first.raffleResult.proof.randomSeed, "api-seed-2026");
+  assert.deepEqual(first.raffleResult.winnerIds, second.raffleResult.winnerIds);
+});
+
 test("createManualPreview can exclude previous winners", () => {
   clearPreviewHistory();
   const participants = [
