@@ -179,7 +179,8 @@ Manual/Excel input
 
 - 실제 당첨자 선정은 이미 끝난 상태에서, 그 결과를 선거 개표방송 스타일의 콘텐츠로 보여주는 MVP입니다.
 - 웹 추첨창은 전체 후보 명단보다 당첨 인원을 중심으로 보여줍니다.
-- 출력 연출 방식은 `Random`, `Dice roll`, `Rock paper scissors`, `Vote count`, `Running race`, `Ladder game`을 선택할 수 있습니다.
+- 출력 연출 방식은 `Random`, `Dice roll`, `Rock paper scissors`, `Vote count`, `Running race`, `Rolling picker`를 선택할 수 있습니다.
+- `Ladder game`은 룰/표현 완성도 문제로 사용자 노출에서 보류했습니다.
 - `Running race`는 같은 추첨 결과를 레인/트랙 형태로 시각화해 “경주형 연출”로 보여줍니다.
 - 아직 실제 단체사진에서 사람이 움직이는 AI 영상은 아니며, 얼굴 리소스와 Remotion 애니메이션을 합성하는 중간 단계입니다.
 - 참가자가 많을 경우 웹 preview는 후보 목록 내부 스크롤로 확인하고, MP4 렌더는 인원 수에 따라 카드/레인 크기를 축소합니다.
