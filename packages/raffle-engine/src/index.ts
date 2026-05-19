@@ -1,6 +1,9 @@
+import { createHash } from "node:crypto";
+
 import type {
   Participant,
   RaffleOptions,
+  RaffleProof,
   RaffleResult,
 } from "../../shared/src/index.js";
 
@@ -29,8 +32,11 @@ export type DrawWinnersInput = {
   options: RaffleOptions;
   previousWinnerIds?: string[];
   createdAt: string;
+  randomSeed?: string;
   randomInt?: RaffleRandomInt;
 };
+
+const raffleAlgorithmVersion = "pick-me-maybe-raffle@1";
 
 export function drawWinners(input: DrawWinnersInput): RaffleResult {
   validateParticipants(input.participants);
@@ -62,12 +68,21 @@ export function drawWinners(input: DrawWinnersInput): RaffleResult {
   );
   const winners = shuffled.slice(0, input.options.winnerCount);
 
-  return {
+  const resultCore = {
     id: input.id,
     winnerIds: winners.map((winner) => winner.id),
     candidateIds: eligibleParticipants.map((participant) => participant.id),
     options: input.options,
     createdAt: input.createdAt,
+  };
+
+  return {
+    ...resultCore,
+    proof: createRaffleProof({
+      input,
+      resultCore,
+      eligibleParticipants,
+    }),
   };
 }
 
@@ -139,6 +154,62 @@ function shuffleParticipants(
   }
 
   return shuffled;
+}
+
+function createRaffleProof({
+  input,
+  resultCore,
+  eligibleParticipants,
+}: {
+  input: DrawWinnersInput;
+  resultCore: Omit<RaffleResult, "proof">;
+  eligibleParticipants: Participant[];
+}): RaffleProof {
+  return {
+    algorithmVersion: raffleAlgorithmVersion,
+    randomSource: input.randomInt ? "injected" : "crypto",
+    ...(input.randomSeed ? { randomSeed: input.randomSeed } : {}),
+    inputHash: sha256Canonical(
+      input.participants.map((participant) => ({
+        id: participant.id,
+        name: participant.name,
+        email: participant.email,
+        department: participant.department,
+        appliedAsset: participant.appliedAsset,
+        inputSource: participant.inputSource,
+        submittedAt: participant.submittedAt,
+      })),
+    ),
+    settingsHash: sha256Canonical({
+      options: input.options,
+      previousWinnerIds: input.previousWinnerIds ?? [],
+      randomSeed: input.randomSeed,
+    }),
+    resultHash: sha256Canonical(resultCore),
+    candidateCount: eligibleParticipants.length,
+    winnerCount: resultCore.winnerIds.length,
+  };
+}
+
+function sha256Canonical(value: unknown): string {
+  return createHash("sha256").update(canonicalize(value)).digest("hex");
+}
+
+function canonicalize(value: unknown): string {
+  if (value === null || typeof value !== "object") {
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => canonicalize(item)).join(",")}]`;
+  }
+
+  const record = value as Record<string, unknown>;
+  return `{${Object.keys(record)
+    .sort()
+    .filter((key) => record[key] !== undefined)
+    .map((key) => `${JSON.stringify(key)}:${canonicalize(record[key])}`)
+    .join(",")}}`;
 }
 
 function cryptoRandomInt(maxExclusive: number): number {

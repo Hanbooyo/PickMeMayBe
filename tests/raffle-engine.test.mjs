@@ -43,6 +43,35 @@ test("drawWinners selects the requested number of unique winners", () => {
   assert.equal(result.winnerIds.length, 2);
   assert.equal(new Set(result.winnerIds).size, 2);
   assert.deepEqual(result.candidateIds, ["p1", "p2", "p3", "p4"]);
+  assert.equal(result.proof.algorithmVersion, "pick-me-maybe-raffle@1");
+  assert.equal(result.proof.randomSource, "injected");
+  assert.equal(result.proof.candidateCount, 4);
+  assert.equal(result.proof.winnerCount, 2);
+  assert.match(result.proof.inputHash, /^[a-f0-9]{64}$/);
+  assert.match(result.proof.settingsHash, /^[a-f0-9]{64}$/);
+  assert.match(result.proof.resultHash, /^[a-f0-9]{64}$/);
+});
+
+test("drawWinners creates stable proof hashes for the same audited draw", () => {
+  const input = {
+    id: "raffle-proof",
+    participants: [participant("p1"), participant("p2"), participant("p3")],
+    options: {
+      winnerCount: 1,
+      allowPreviousWinners: true,
+    },
+    createdAt,
+    randomSeed: "audit-seed-1",
+    randomInt: firstIndexRandomInt,
+  };
+
+  const first = drawWinners(input);
+  const second = drawWinners(input);
+
+  assert.equal(first.proof.randomSeed, "audit-seed-1");
+  assert.equal(first.proof.inputHash, second.proof.inputHash);
+  assert.equal(first.proof.settingsHash, second.proof.settingsHash);
+  assert.equal(first.proof.resultHash, second.proof.resultHash);
 });
 
 test("getEligibleParticipants excludes previous winners when configured", () => {

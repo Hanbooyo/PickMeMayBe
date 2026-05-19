@@ -51,12 +51,24 @@ export type RaffleOptions = {
   allowPreviousWinners: boolean;
 };
 
+export type RaffleProof = {
+  algorithmVersion: string;
+  randomSource: "crypto" | "injected";
+  randomSeed?: string;
+  inputHash: string;
+  settingsHash: string;
+  resultHash: string;
+  candidateCount: number;
+  winnerCount: number;
+};
+
 export type RaffleResult = {
   id: string;
   winnerIds: string[];
   candidateIds: string[];
   options: RaffleOptions;
   createdAt: string;
+  proof?: RaffleProof;
 };
 
 export type PresentationMode =
